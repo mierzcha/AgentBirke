@@ -1,14 +1,14 @@
 import sqlite3
-from pathlib import path
+from pathlib import Path
 
 # Pfad zur Datenbank
-PROJECT_ROOT = Path(__file__).resolve.parent.parent
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DATABASE_PATH = PROJECT_ROOT / "data" /"database" / "signals.db"
 
 def init_database():
     """Erstellt Signalspeicher 'signals.db' und dessen Tabellen"""
 
-    DATABASE_PATH.parent.mkdir(parents=True, exists_ok=True)
+    DATABASE_PATH.parent.mkdir(parents=True, exist_ok=True)
 
     connection = sqlite3.connect(DATABASE_PATH)
 
@@ -29,5 +29,5 @@ def init_database():
 
     print(f"Signalspeicher initialisiert: {DATABASE_PATH}")
 
-def __name__ == "__main__":
+if __name__ == "__main__":
     init_database()
