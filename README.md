@@ -1,20 +1,26 @@
 # AgentBirke
 
-Version 0
+Version 0 (WIP)
+
+## Create Virtual Environment
 
 Agent Birke requires Python 3.11 to run.
 
-Install other Requirements with
+python3.11 -m venv .venv
+
+source .venv/bin/activate
+
+python -m pip install --upgrade pip
+
+## Install Requirements
 
 pip install -r requirements.txt
 
-# Open WebUI einrichten
+## Open WebUI einrichten
 
 pip install open-webui
 
 pip install pysqlite3-binary
-
-TODO: venv?
 
 docker run -d -p 3000:8080 --add-host=host.docker.internal:host-gateway -v open-webui:/app/backend/data --name open-webui --restart always ghcr.io/open-webui/open-webui:main
 Unable to find image 'ghcr.io/open-webui/open-webui:main' locally
