@@ -23,3 +23,12 @@ class OllamaClient:
             prompt (str): A prompt for Ollama
         Returns:
             str: Answer from Ollama
+        """
+        response = requests.post(
+            f"{self.url}/api/generate",
+            json={"model":: self.model, "prompt": prompt, "stream": False},
+            timeout=120,
+        )
+        response.raise_for_status()
+        data = response.json()
+        return data["response"]
