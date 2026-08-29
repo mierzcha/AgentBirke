@@ -8,7 +8,7 @@ class OllamaClient:
     """
     A class used to represent an Ollama Client
     """
-    def __init__(self, url: str, model: str):
+    def __init__(self, url: str | None = None, model: str | None = None):
         """
         Parameters:
             url (str): The URL of Ollama
@@ -26,7 +26,7 @@ class OllamaClient:
         """
         response = requests.post(
             f"{self.url}/api/generate",
-            json={"model":: self.model, "prompt": prompt, "stream": False},
+            json={"model": self.model, "prompt": prompt, "stream": False},
             timeout=120,
         )
         response.raise_for_status()
