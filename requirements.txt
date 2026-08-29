@@ -1,2 +1,4 @@
+python-dotenv
+requests
 faster-whisper
 piper-tts
