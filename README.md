@@ -16,6 +16,15 @@ python -m pip install --upgrade pip
 
 pip install -r requirements.txt
 
+## Signalspeicher initialisieren
+
+data/database/signals.db ist die Signalspeicher-Datenbank.
+Sie wird initialisiert mit:
+
+python src/signals/database.py
+
+TODO Verbindung
+
 ## Open WebUI einrichten
 
 pip install open-webui
@@ -30,6 +39,6 @@ visit localhost:3000
 create Administrator Account
 Create an API Key
 
-# Signalspeicher initialisieren
 
-python3 scripts/init_database.py
+
+
