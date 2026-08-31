@@ -15,6 +15,8 @@ Agent Birke requires Python 3.11 to run.
 ## Install Requirements
 
 > pip install -r requirements.txt
+> pip install pysqlite3-binary
+> pip install open-webui
 
 ## Signalspeicher initialisieren
 
@@ -23,13 +25,7 @@ Sie wird initialisiert mit:
 
 > PYTHONPATH=. python scripts/init_database.py
 
-TODO
-
 ## Open WebUI einrichten
-
-pip install open-webui
-
-pip install pysqlite3-binary
 
 > docker run -d -p 3000:8080 --add-host=host.docker.internal:host-gateway -v open-webui:/app/backend/data --name open-webui --restart always ghcr.io/open-webui/open-webui:main
 
@@ -45,7 +41,3 @@ Ollama testen
 
 Signalspeicher testen
 > PYTHONPATH=. python tests/test_signals.py
-
-
-
-
