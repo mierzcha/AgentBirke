@@ -64,3 +64,31 @@ class SignalRepository:
             state=row[4],
             time=datetime.fromisoformat(row[5]),
         )
+
+    def get_recent(self, limit: int = 10) -> list[Signal]:
+        """Return the most recently stored signals."""
+        connection = get_connection()
+
+        rows = connection.execute(
+            """
+            SELECT uv, temperature, soil_moisture, touch, state, time
+            FROM signals
+            ORDER BY id DESC
+            LIMIT ?
+            """,
+           (limit,),
+        ).fetchall()
+
+        connection.close()
+
+        return [
+            Signal(
+                uv=row[0],
+                temperature=row[1],
+                soil_moisture=row[2],
+                touch=bool(row[3]),
+                state=row[4],
+                time=datetime.fromisoformat(row[5]),
+            )
+        for row in rows
+        ]
