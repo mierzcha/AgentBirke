@@ -21,7 +21,7 @@ pip install -r requirements.txt
 data/database/signals.db ist die Signalspeicher-Datenbank.
 Sie wird initialisiert mit:
 
-python src/signals/database.py
+python scripts/init_database.py
 
 TODO Verbindung
 
