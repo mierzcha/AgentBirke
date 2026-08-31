@@ -6,28 +6,34 @@ Version 0 (WIP)
 
 Agent Birke requires Python 3.11 to run.
 
-> python3.11 -m venv .venv
-
-> source .venv/bin/activate
-
-> python -m pip install --upgrade pip
+```bash
+python3.11 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+```
 
 ## Install Requirements
 
-> pip install -r requirements.txt
-> pip install pysqlite3-binary
-> pip install open-webui
+```bash
+pip install -r requirements.txt
+pip install pysqlite3-binary
+pip install open-webui
+```
 
 ## Signalspeicher initialisieren
 
 data/database/signals.db ist die Signalspeicher-Datenbank.
 Sie wird initialisiert mit:
 
-> PYTHONPATH=. python scripts/init_database.py
+```bash
+PYTHONPATH=. python scripts/init_database.py
+```
 
 ## Open WebUI einrichten
 
-> docker run -d -p 3000:8080 --add-host=host.docker.internal:host-gateway -v open-webui:/app/backend/data --name open-webui --restart always ghcr.io/open-webui/open-webui:main
+```bash
+docker run -d -p 3000:8080 --add-host=host.docker.internal:host-gateway -v open-webui:/app/backend/data --name open-webui --restart always ghcr.io/open-webui/open-webui:main
+```
 
 visit localhost:3000
 create an Administrator Account
@@ -37,7 +43,11 @@ write API Key in your own .env
 ## Run Tests
 
 Ollama testen
-> PYTHONPATH=. python tests/test_ollama.py
+```bash
+PYTHONPATH=. python tests/test_ollama.py
+```
 
 Signalspeicher testen
-> PYTHONPATH=. python tests/test_signals.py
+```bash
+PYTHONPATH=. python tests/test_signals.py
+```
