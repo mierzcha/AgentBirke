@@ -12,7 +12,7 @@ class EnvironmentSimulator:
         self.repository = repository
 
         self.state = EnvironmentState(
-            uv=50,
+            uv=3,
             temperature=20,
             soil_moisture=70,
             touch=False,
