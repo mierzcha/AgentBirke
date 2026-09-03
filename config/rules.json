@@ -1,0 +1,14 @@
+{
+    "soil_moisture": {
+        "thirsty_below": 40,
+        "drowning_above": 70
+    },
+    "temperature": {
+        "too_cold_below": 15,
+        "too_hot_above": 25
+    },
+    "uv": {
+        "too_dark_below": 2,
+        "too_bright_above": 6
+    }
+}
