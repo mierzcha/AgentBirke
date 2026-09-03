@@ -8,7 +8,7 @@ def main():
     repository = SignalRepository()
 
     signal = Signal(
-        uv=50,
+        uv=5,
         temperature=22,
         soil_moisture=70,
         touch=True,

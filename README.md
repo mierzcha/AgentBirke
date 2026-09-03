@@ -16,7 +16,6 @@ python -m pip install --upgrade pip
 
 ```bash
 pip install -r requirements.txt
-pip install pysqlite3-binary
 pip install open-webui
 ```
 

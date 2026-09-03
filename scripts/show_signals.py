@@ -24,7 +24,7 @@ print("-" * 80)
 for row in rows:
     print(
         f"ID: {row[0]} | "
-        f"UV: {row[1]} | "
+        f"UV-Index: {row[1]} | "
         f"Temperatur: {row[2]} °C | "
         f"Bodenfeuchtigkeit: {row[3]} % | "
         f"Touch: {bool(row[4])} | "
