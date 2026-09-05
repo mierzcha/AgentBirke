@@ -20,6 +20,10 @@ if "state_machine" not in st.session_state:
 
 state_machine = st.session_state.state_machine
 
+# Dialogverlauf initialisieren
+if "dialog_history" not in st.session_state:
+    st.session_state.dialog_history = []
+
 # Berührung
 if "touch_active" not in st.session_state:
     st.session_state.touch_active = False
@@ -76,8 +80,17 @@ with col1:
 with col2:
 
     if st.button("Spracheingabe"):
+	      #TODO 
 
-        # TODO: Wird später durch STT ersetzt.
+        user_input = "Hallo Birke"
+
+        st.session_state.dialog_history.append(
+            {
+                "speaker": "Nutzer",
+                "text": user_input,
+            }
+        )
+
         state_machine.handle_event("speech")
 
         st.rerun()
@@ -94,7 +107,18 @@ with col3:
 # Dialogverlauf
 st.subheader("Dialogverlauf")
 
-st.write("TODO: Dialogverlauf anzeigen")
+if not st.session_state.dialog_history:
+
+    st.write("Noch keine Dialogbeiträge.")
+
+else:
+
+    for message in st.session_state.dialog_history:
+
+        st.write(
+            f"**{message['speaker']}:** "
+            f"{message['text']}"
+        )
 
 # Zustandsautomat
 st.subheader("Zustandsautomat")
