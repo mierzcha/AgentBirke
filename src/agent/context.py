@@ -11,3 +11,16 @@ class AgentContext:
     dialog_state: DialogState
     environment: EnvironmentState
     conditions: list[str]
+    
+def create_context(
+    dialog_state: DialogState,
+    environment: EnvironmentState,
+    conditions: list[str],
+) -> AgentContext:
+    """Create the current context of Agent Birke."""
+
+    return AgentContext(
+        dialog_state=dialog_state,
+        environment=environment,
+        conditions=conditions,
+    )

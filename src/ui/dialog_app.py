@@ -2,6 +2,10 @@ import time
 
 import streamlit as st
 
+from src.agent.context import create_context
+from src.rules.evaluator import RuleEvaluator
+from src.signals.repository import SignalRepository
+from src.simulation.simulator import EnvironmentSimulator
 from src.dialog.state_machine import DialogStateMachine
 from src.dialog.states import DialogState
 
@@ -19,6 +23,31 @@ if "state_machine" not in st.session_state:
     st.session_state.state_machine = DialogStateMachine()
 
 state_machine = st.session_state.state_machine
+
+# Zugriff auf aktuellen simulierten Umweltzustand
+if "simulator" not in st.session_state:
+    repository = SignalRepository()
+    st.session_state.simulator = EnvironmentSimulator(repository)
+
+simulator = st.session_state.simulator
+
+rule_evaluator = RuleEvaluator()
+
+environment = simulator.state
+
+# Regeln bestimmen
+conditions = rule_evaluator.evaluate(
+    soil_moisture=environment.soil_moisture,
+    temperature=environment.temperature,
+    uv=environment.uv,
+)
+
+# Context erstellen
+context = create_context(
+    dialog_state=state_machine.state,
+    environment=environment,
+    conditions=conditions,
+)
 
 # Dialogverlauf initialisieren
 if "dialog_history" not in st.session_state:
@@ -45,7 +74,28 @@ st.info(state_machine.state.value)
 # Umweltbedingungen
 st.subheader("Umweltbedingungen")
 
-st.write("TODO: Aktive Umweltbedingungen anzeigen")
+st.write(
+    f"UV: {context.environment.uv}"
+)
+
+st.write(
+    f"Temperatur: {context.environment.temperature} °C"
+)
+
+st.write(
+    f"Bodenfeuchtigkeit: {context.environment.soil_moisture} %"
+)
+
+st.write(
+    f"Berührung: "
+    f"{'Ja' if context.environment.touch else 'Nein'}"
+)
+
+st.write("Aktive Bedingungen:")
+
+if context.conditions:
+    for condition in context.conditions:
+        st.write(f"• {condition}")
 
 # Aktionen
 st.subheader("Aktionen")
