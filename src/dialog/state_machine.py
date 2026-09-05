@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from datetime import datetime
 
+
 from .states import DialogState
 
 
@@ -15,6 +16,8 @@ class StateTransition:
 
 class DialogStateMachine:
     """Controls transitions between dialogue states."""
+
+    GOODBYE_DURATION = 2.0
 
     def __init__(self):
         self.state = DialogState.IDLE
@@ -54,12 +57,15 @@ class DialogStateMachine:
         """Perform automatic state transitions."""
 
         if self.state == DialogState.GOODBYE:
+
             elapsed_time = (
                 datetime.now() - self.goodbye_started_at
             ).total_seconds()
 
-            if elapsed_time >= 2:
+            if elapsed_time >= self.GOODBYE_DURATION:
+
                 old_state = self.state
+
                 self.state = DialogState.IDLE
                 self.goodbye_started_at = None
 
