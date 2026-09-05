@@ -44,7 +44,6 @@ st.subheader("Aktionen")
 
 col1, col2, col3 = st.columns(3)
 
-
 with col1:
 
     if not st.session_state.touch_active:
@@ -61,8 +60,9 @@ with col1:
         if st.button("Birke loslassen"):
             st.session_state.touch_active = False
 
-            st.rerun()
+            state_machine.handle_event("release")
 
+            st.rerun()
 
 with col2:
 
@@ -97,6 +97,77 @@ st.write(
 )
 
 st.info(state_machine.state.value)
+
+# Darstellung des Zustandsautomaten
+
+current_state = state_machine.state.value
+
+#
+if state_machine.state == DialogState.GOODBYE:
+    import time
+
+    time.sleep(0.1) #TODO - Ersetzen mit einem Abschluss schalter - nachdem Abschied Sprachausgabe beendet
+    st.rerun()
+
+graph = f"""
+digraph {{
+    rankdir=LR;
+
+    Idle [
+        label="Idle",
+        style="{'filled' if current_state == 'Idle' else 'solid'}"
+    ];
+
+    Greeting [
+        label="Greeting",
+        style="{'filled' if current_state == 'Greeting' else 'solid'}"
+    ];
+
+    Dialogue_active [
+        label="Dialogue_active",
+        style="{'filled' if current_state == 'Dialogue_active' else 'solid'}"
+    ];
+
+    Goodbye [
+        label="Goodbye",
+        style="{'filled' if current_state == 'Goodbye' else 'solid'}"
+    ];
+
+    Idle -> Greeting [
+        label="Birke berühren"
+    ];
+
+    Greeting -> Dialogue_active [
+        label="Spracheingabe"
+    ];
+
+    Dialogue_active -> Goodbye [
+        label="Birke loslassen"
+    ];
+
+    Goodbye -> Idle;
+}}
+"""
+
+st.graphviz_chart(graph)
+
+# Zustandsverlauf
+
+st.subheader("Zustandsverlauf")
+
+if not state_machine.history:
+
+    st.write("Noch keine Zustandswechsel.")
+
+else:
+
+    for transition in state_machine.history:
+
+        st.write(
+            f"{transition.from_state.value} "
+            f"-- {transition.event} --> "
+            f"{transition.to_state.value}"
+        )
 
 # Entwicklerbereich
 
