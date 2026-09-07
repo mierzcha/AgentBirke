@@ -31,11 +31,11 @@ def main():
     print(prompt)
     print("--------------------------------")
 
-    assert "Dialogue_active" in prompt
-    assert "Thirsty" in prompt
     assert "Too_Hot" in prompt
+    assert "Thirsty" in prompt
     assert "30 °C" in prompt
     assert "30 %" in prompt
+    assert "Berührungssensor ist aktiviert" in prompt
     assert "Wie geht es dir?" in prompt
 
     print("PromptBuilder funktioniert.")

@@ -6,6 +6,7 @@ from src.agent.context import create_context
 from src.dialog.prompt_builder import PromptBuilder
 from src.dialog.state_machine import DialogStateMachine
 from src.dialog.states import DialogState
+from src.llm.client import OllamaClient
 from src.rules.evaluator import RuleEvaluator
 from src.signals.repository import SignalRepository
 from src.simulation.events import EnvironmentState
@@ -31,6 +32,7 @@ state_machine = st.session_state.state_machine
 repository = SignalRepository()
 rule_evaluator = RuleEvaluator()
 prompt_builder = PromptBuilder()
+ollama_client = OllamaClient()
 
 
 # Dialogverlauf initialisieren
@@ -189,6 +191,8 @@ user_input = st.text_input(
 
 if st.button("Eingabe senden") and user_input:
 
+    start_time = time.perf_counter()
+
     # Dialogzustand aktualisieren
     state_machine.handle_event("speech")
 
@@ -224,14 +228,39 @@ if st.button("Eingabe senden") and user_input:
         context=context,
     )
 
-    # Prompt speichern
-    st.session_state.last_prompt = prompt
+    # Anfrage an Ollama senden
+    with st.spinner("🌱 Birke denkt nach..."):
 
-    # Nutzereingabe im Dialogverlauf speichern
+        try:
+
+            answer = ollama_client.generate(prompt)
+
+        except Exception as error:
+
+            answer = (
+                f"Fehler bei der Verbindung mit Ollama: {error}"
+            )
+
+    processing_time = time.perf_counter() - start_time
+
+    # Prompt und Antwort speichern
+    st.session_state.last_prompt = prompt
+    st.session_state.last_answer = answer
+    st.session_state.last_processing_time = processing_time
+
+    # Nutzereingabe speichern
     st.session_state.dialog_history.append(
         {
             "speaker": "Nutzer",
             "text": user_input,
+        }
+    )
+
+    # Antwort speichern
+    st.session_state.dialog_history.append(
+        {
+            "speaker": "Birke",
+            "text": answer,
         }
     )
 
@@ -246,6 +275,16 @@ if "last_prompt" in st.session_state:
     st.code(
         st.session_state.last_prompt,
         language="text",
+    )
+
+
+# Generierte Antwort
+if "last_answer" in st.session_state:
+
+    st.subheader("Generierte Antwort")
+
+    st.write(
+        st.session_state.last_answer
     )
 
 
@@ -366,9 +405,17 @@ if st.button("Zustand übernehmen"):
 # Bearbeitungszeit
 st.subheader("Bearbeitungszeit")
 
-st.write(
-    "TODO: Antwort- bzw. Bearbeitungszeit anzeigen"
-)
+if "last_processing_time" in st.session_state:
+
+    st.write(
+        f"{st.session_state.last_processing_time:.2f} Sekunden"
+    )
+
+else:
+
+    st.write(
+        "Noch keine Anfrage verarbeitet."
+    )
 
 
 # Spracheingabe und Sprachausgabe
