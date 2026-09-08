@@ -1,7 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime
 
-
 from .states import DialogState
 
 
@@ -30,19 +29,30 @@ class DialogStateMachine:
         old_state = self.state
 
         if self.state == DialogState.IDLE:
+
             if event == "touch":
                 self.state = DialogState.GREETING
 
         elif self.state == DialogState.GREETING:
+
             if event == "speech":
                 self.state = DialogState.DIALOGUE_ACTIVE
 
+            elif event == "release":
+                self.state = DialogState.GOODBYE
+                self.goodbye_started_at = datetime.now()
+
         elif self.state == DialogState.DIALOGUE_ACTIVE:
-            if event == "release":
+
+            if event == "speech":
+                self.state = DialogState.DIALOGUE_ACTIVE
+
+            elif event == "release":
                 self.state = DialogState.GOODBYE
                 self.goodbye_started_at = datetime.now()
 
         if self.state != old_state:
+
             self.history.append(
                 StateTransition(
                     from_state=old_state,
