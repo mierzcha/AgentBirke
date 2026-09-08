@@ -4,8 +4,13 @@ from src.agent.context import AgentContext
 class PromptBuilder:
     """Builds prompts for Agent Birke."""
 
-    def build(self, user_input: str, context: AgentContext) -> str:
-        """Create a prompt from user input and the current agent context."""
+    def build(
+        self,
+        user_input: str,
+        context: AgentContext,
+        dialog_history: list[dict[str, str]],
+    ) -> str:
+        """Create a prompt from user input, context and dialog history."""
 
         if context.dialog_state.value == "Dialogue_active":
             dialog_description = (
@@ -43,6 +48,16 @@ class PromptBuilder:
             else "Der Berührungssensor ist nicht aktiviert."
         )
 
+        conversation = ""
+
+        for message in dialog_history:
+            conversation += (
+                f"{message['speaker']}: {message['text']}\n"
+            )
+
+        if not conversation:
+            conversation = "Noch kein bisheriger Gesprächsverlauf."
+
         prompt = f"""
 Du bist Agent Birke, eine freundliche künstliche Birke.
 
@@ -60,10 +75,17 @@ Aktuelle Umweltwerte:
 
 {touch_description}
 
-Der Nutzer sagt:
+Bisheriger Gesprächsverlauf:
+{conversation}
+
+Aktuelle Nutzereingabe:
 {user_input}
 
-Antworte passend auf die Nutzereingabe.
+Beziehe den bisherigen Gesprächsverlauf in deine Antwort ein.
+Wenn der Nutzer beispielsweise seinen Namen genannt hat, kannst du
+diesen Namen im weiteren Gespräch verwenden.
+
+Antworte passend auf die aktuelle Nutzereingabe.
 """
 
         return prompt.strip()

@@ -90,6 +90,18 @@ if state_machine.state == DialogState.GOODBYE:
     time.sleep(state_machine.GOODBYE_DURATION)
 
     state_machine.update()
+  
+    if state_machine.state == DialogState.IDLE:
+        st.session_state.dialog_history = []
+
+    if "last_prompt" in st.session_state:
+        del st.session_state.last_prompt
+
+    if "last_answer" in st.session_state:
+        del st.session_state.last_answer
+
+    if "last_processing_time" in st.session_state:
+        del st.session_state.last_processing_time
 
     st.rerun()
 
@@ -183,88 +195,89 @@ st.write(
     "Spracheingabe durch STT."
 )
 
-user_input = st.text_input(
-    "Nutzereingabe",
-    placeholder="Was möchtest du der Birke sagen?",
-)
+if state_machine.state in [
+    DialogState.GREETING,
+    DialogState.DIALOGUE_ACTIVE,
+]:
 
-
-if st.button("Eingabe senden") and user_input:
-
-    start_time = time.perf_counter()
-
-    # Dialogzustand aktualisieren
-    state_machine.handle_event("speech")
-
-    # Umweltzustand erneut aus der Datenbank lesen
-    signal = repository.get_latest()
-
-    if signal is not None:
-
-        environment = EnvironmentState(
-            uv=signal.uv,
-            temperature=signal.temperature,
-            soil_moisture=signal.soil_moisture,
-            touch=signal.touch,
-        )
-
-    # Umweltbedingungen erneut bestimmen
-    conditions = rule_evaluator.evaluate(
-        soil_moisture=environment.soil_moisture,
-        temperature=environment.temperature,
-        uv=environment.uv,
+    user_input = st.text_input(
+        "Nutzereingabe",
+        placeholder="Was möchtest du der Birke sagen?",
     )
 
-    # Kontext erneut erstellen
-    context = create_context(
-        dialog_state=state_machine.state,
-        environment=environment,
-        conditions=conditions,
-    )
+    if st.button("Eingabe senden") and user_input:
+        start_time = time.perf_counter()
 
-    # Prompt erzeugen
-    prompt = prompt_builder.build(
-        user_input=user_input,
-        context=context,
-    )
+        state_machine.handle_event("speech")
 
-    # Anfrage an Ollama senden
-    with st.spinner("🌱 Birke denkt nach..."):
+        signal = repository.get_latest()
 
-        try:
+        if signal is not None:
 
-            answer = ollama_client.generate(prompt)
-
-        except Exception as error:
-
-            answer = (
-                f"Fehler bei der Verbindung mit Ollama: {error}"
+            environment = EnvironmentState(
+                uv=signal.uv,
+                temperature=signal.temperature,
+                soil_moisture=signal.soil_moisture,
+                touch=signal.touch,
             )
 
-    processing_time = time.perf_counter() - start_time
+        conditions = rule_evaluator.evaluate(
+            soil_moisture=environment.soil_moisture,
+            temperature=environment.temperature,
+            uv=environment.uv,
+        )
 
-    # Prompt und Antwort speichern
-    st.session_state.last_prompt = prompt
-    st.session_state.last_answer = answer
-    st.session_state.last_processing_time = processing_time
+        context = create_context(
+            dialog_state=state_machine.state,
+            environment=environment,
+            conditions=conditions,
+        )
 
-    # Nutzereingabe speichern
-    st.session_state.dialog_history.append(
-        {
-            "speaker": "Nutzer",
-            "text": user_input,
-        }
+        prompt = prompt_builder.build(
+            user_input=user_input,
+            context=context,
+            dialog_history=st.session_state.dialog_history,
+        )
+
+        with st.spinner("🌱 Birke denkt nach..."):
+
+            try:
+                answer = ollama_client.generate(prompt)
+
+            except Exception as error:
+
+                answer = (
+                    f"Fehler bei der Verbindung mit Ollama: {error}"
+                )
+
+        processing_time = time.perf_counter() - start_time
+
+        st.session_state.last_prompt = prompt
+        st.session_state.last_answer = answer
+        st.session_state.last_processing_time = processing_time
+
+        st.session_state.dialog_history.append(
+            {
+                "speaker": "Nutzer",
+                "text": user_input,
+            }
+        )
+
+        st.session_state.dialog_history.append(
+            {
+                "speaker": "Birke",
+                "text": answer,
+            }
+        )
+
+        st.rerun()
+
+else:
+
+    st.info(
+        "Spracheingabe ist nur möglich, "
+        "wenn die Birke berührt wird."
     )
-
-    # Antwort speichern
-    st.session_state.dialog_history.append(
-        {
-            "speaker": "Birke",
-            "text": answer,
-        }
-    )
-
-    st.rerun()
 
 
 # Generierter Prompt
