@@ -1,3 +1,5 @@
+import time
+
 import streamlit as st
 
 from src.agent.context import create_context
@@ -10,11 +12,14 @@ from src.signals.repository import SignalRepository
 from src.simulation.events import EnvironmentState
 
 
-#Temp (später aus configuration skript) (TODO)
+# Temp (später aus configuration Skript) (TODO)
 DEFAULT_UV = 3
 DEFAULT_TEMPERATURE = 20
 DEFAULT_SOIL_MOISTURE = 50
 DEFAULT_TOUCH = False
+
+DIALOG_HISTORY_DISPLAY_TIME = 5
+
 
 st.set_page_config(
     page_title="Agent Birke - Dialog",
@@ -23,9 +28,10 @@ st.set_page_config(
 
 
 st.title("🌳 Agent Birke")
-st.write("Dialogsystem")
+st.header("Dialogsystem")
 
-"""initialize State Machine"""
+
+# initializing State Machine
 # TODO: Initialisierungen als Methoden schreiben?
 if "state_machine" not in st.session_state:
     st.session_state.state_machine = DialogStateMachine()
@@ -39,9 +45,17 @@ if "last_prompt" not in st.session_state:
 if "last_answer" not in st.session_state:
     st.session_state.last_answer = None
 
+if "goodbye_done" not in st.session_state:
+    st.session_state.goodbye_done = False
+
+if "history_clear_at" not in st.session_state:
+    st.session_state.history_clear_at = None
+
+
 state_machine = st.session_state.state_machine
 
-"""initialize components"""
+
+# initializing components
 repository = SignalRepository()
 rule_evaluator = RuleEvaluator()
 prompt_builder = PromptBuilder()
@@ -69,13 +83,13 @@ def get_environment() -> EnvironmentState:
     )
 
 
-def create_agent_context() :
+def create_agent_context():
     """Create the current context of Agent Birke."""
-    
-    #TODO nicht gebraucht?
-    # Berührungszustand 
-		#if "touch_active" not in st.session_state:
-		#    st.session_state.touch_active = False
+
+    # TODO nicht gebraucht?
+    # Berührungszustand
+    # if "touch_active" not in st.session_state:
+    #     st.session_state.touch_active = False
 
     environment = get_environment()
 
@@ -107,6 +121,7 @@ def generate_response(user_input: str) -> str:
 
     with st.spinner("🌱 Birke denkt nach..."):
         answer = ollama_client.generate(prompt)
+        print("ollama benachrichtigt (TODO)")
 
     st.session_state.last_answer = answer
 
@@ -129,6 +144,7 @@ st.subheader("Aktueller Zustand")
 st.write(
     f"**Dialogzustand:** `{state_machine.state.value}`"
 )
+
 
 # TODO
 # Darstellung des Zustandsautomaten (Graf neu)
@@ -162,11 +178,15 @@ with col3:
 st.subheader("Berührung")
 
 
+# handling buttons
 if state_machine.state == DialogState.IDLE:
 
     if st.button("Birke berühren"):
 
         state_machine.handle_event("touch")
+
+        st.session_state.goodbye_done = False
+        st.session_state.history_clear_at = None
 
         st.rerun()
 
@@ -180,6 +200,8 @@ elif state_machine.state in [
 
         state_machine.handle_event("release")
 
+        st.session_state.goodbye_done = False
+
         st.rerun()
 
 
@@ -188,9 +210,26 @@ elif state_machine.state == DialogState.GOODBYE:
     st.info("Das Gespräch wird beendet.")
 
 
-if state_machine.state == DialogState.GREETING:
+# Dialogue history
+if st.session_state.dialog_history:
 
-    st.subheader("Begrüßung")
+    st.subheader("Gesprächsverlauf")
+
+    for message in st.session_state.dialog_history:
+
+        if message["speaker"] == "Nutzer":
+            st.write(
+                f"**Nutzer:** {message['text']}"
+            )
+
+        else:
+            st.write(
+                f"**Birke:** {message['text']}"
+            )
+
+
+# handling Text Input Field
+if state_machine.state == DialogState.GREETING:
 
     if st.session_state.last_answer is None:
 
@@ -198,7 +237,26 @@ if state_machine.state == DialogState.GREETING:
 
         add_to_history("Birke", answer)
 
-        state_machine.handle_event("greeting_finished")
+        st.rerun()
+
+    with st.form("greeting_dialog_form"):
+
+        user_input = st.text_input(
+            "Was möchtest du der Birke sagen?"
+        )
+
+        submitted = st.form_submit_button(
+            "Eingabe senden"
+        )
+
+    if submitted and user_input.strip():
+
+        state_machine.handle_event("speech")
+
+        answer = generate_response(user_input)
+
+        add_to_history("Nutzer", user_input)
+        add_to_history("Birke", answer)
 
         st.rerun()
 
@@ -207,75 +265,87 @@ elif state_machine.state == DialogState.DIALOGUE_ACTIVE:
 
     st.subheader("Gespräch")
 
-    user_input = st.text_input(
-        "Was möchtest du der Birke sagen?",
-        key="user_input",
-    )
+    with st.form("dialog_form"):
 
-    if st.button("Eingabe senden"):
+        user_input = st.text_input(
+            "Was möchtest du der Birke sagen?"
+        )
 
-        if user_input.strip():
+        submitted = st.form_submit_button(
+            "Eingabe senden"
+        )
 
-            answer = generate_response(user_input)
+    if submitted and user_input.strip():
 
-            add_to_history("Nutzer", user_input)
-            add_to_history("Birke", answer)
+        answer = generate_response(user_input)
 
-            st.session_state.user_input = ""
+        add_to_history("Nutzer", user_input)
+        add_to_history("Birke", answer)
 
-            st.rerun()
+        st.rerun()
 
 
 elif state_machine.state == DialogState.GOODBYE:
 
     st.subheader("Verabschiedung")
 
-    if st.session_state.last_answer is None:
+    if not st.session_state.goodbye_done:
 
         answer = generate_response("")
 
         add_to_history("Birke", answer)
 
+        st.session_state.goodbye_done = True
+
         state_machine.handle_event("goodbye_finished")
 
-        st.session_state.dialog_history = []
-        st.session_state.last_prompt = None
-        st.session_state.last_answer = None
-        # TODO Automatischer Übergang von Goodbye zu Idle testen
+        st.session_state.history_clear_at = (
+            time.time() + DIALOG_HISTORY_DISPLAY_TIME
+        )
 
         st.rerun()
 
 
-if st.session_state.dialog_history:
+# Delete dialogue history after display time
+if state_machine.state == DialogState.IDLE:
 
-    st.subheader("Gesprächsverlauf")
+    if st.session_state.history_clear_at is not None:
 
-    for message in st.session_state.dialog_history:
+        if time.time() >= st.session_state.history_clear_at:
 
-        if message["speaker"] == "Nutzer":
-            st.write(f"**Nutzer:** {message['text']}")
+            st.session_state.dialog_history = []
+            st.session_state.last_prompt = None
+            st.session_state.last_answer = None
+            st.session_state.history_clear_at = None
+
+            st.rerun()
 
         else:
-            st.write(f"**Birke:** {message['text']}")
+
+            time.sleep(0.5)
+            st.rerun()
 
 
-if st.session_state.last_prompt:
+with st.expander("Entwickleransicht anzeigen"):
 
-    with st.expander("Prompt anzeigen"):
-        st.text(st.session_state.last_prompt)
+    st.subheader("Entwickleransicht")
 
+    st.write(
+        f"Aktueller Zustand: `{state_machine.state.value}`"
+    )
 
-st.subheader("Entwickleransicht")
+    if st.session_state.last_prompt:
 
-st.write(
-    f"Aktueller Zustand: `{state_machine.state.value}`"
-)
+        with st.expander("Prompt anzeigen"):
+            st.text(st.session_state.last_prompt)
 
-if st.button("Gespräch zurücksetzen"):
+    if st.button("Gespräch zurücksetzen"):
 
-    st.session_state.state_machine = DialogStateMachine()
-    st.session_state.dialog_history = []
-    st.session_state.last_prompt = None
-    st.session_state.last_answer = None
+        st.session_state.state_machine = DialogStateMachine()
+        st.session_state.dialog_history = []
+        st.session_state.last_prompt = None
+        st.session_state.last_answer = None
+        st.session_state.goodbye_done = False
+        st.session_state.history_clear_at = None
 
-    st.rerun()
+        st.rerun()

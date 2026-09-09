@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from datetime import datetime
 
 from .states import DialogState
 
@@ -16,12 +15,9 @@ class StateTransition:
 class DialogStateMachine:
     """Controls transitions between dialogue states."""
 
-    GOODBYE_DURATION = 2.0
-
     def __init__(self):
         self.state = DialogState.IDLE
         self.history = []
-        self.goodbye_started_at = None
 
     def handle_event(self, event: str) -> DialogState:
         """Process an event and return the new dialogue state."""
@@ -40,7 +36,6 @@ class DialogStateMachine:
 
             elif event == "release":
                 self.state = DialogState.GOODBYE
-                self.goodbye_started_at = datetime.now()
 
         elif self.state == DialogState.DIALOGUE_ACTIVE:
 
@@ -49,7 +44,11 @@ class DialogStateMachine:
 
             elif event == "release":
                 self.state = DialogState.GOODBYE
-                self.goodbye_started_at = datetime.now()
+
+        elif self.state == DialogState.GOODBYE:
+
+            if event == "goodbye_finished":
+                self.state = DialogState.IDLE
 
         if self.state != old_state:
 
@@ -60,31 +59,5 @@ class DialogStateMachine:
                     to_state=self.state,
                 )
             )
-
-        return self.state
-
-    def update(self) -> DialogState:
-        """Perform automatic state transitions."""
-
-        if self.state == DialogState.GOODBYE:
-
-            elapsed_time = (
-                datetime.now() - self.goodbye_started_at
-            ).total_seconds()
-
-            if elapsed_time >= self.GOODBYE_DURATION:
-
-                old_state = self.state
-
-                self.state = DialogState.IDLE
-                self.goodbye_started_at = None
-
-                self.history.append(
-                    StateTransition(
-                        from_state=old_state,
-                        event="automatic",
-                        to_state=self.state,
-                    )
-                )
 
         return self.state
