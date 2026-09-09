@@ -154,19 +154,44 @@ st.write(
     f"**Dialogzustand:** `{state_machine.state.value}`"
 )
 
-# visualization of State transitions
+# visualization of State and State transitions
+st.subheader("Zustandsautomat")
+
+st.write(
+    f"**Aktueller Zustand:** `{state_machine.state.value}`"
+)
+
+states = [
+    DialogState.IDLE,
+    DialogState.GREETING,
+    DialogState.DIALOGUE_ACTIVE,
+    DialogState.GOODBYE,
+]
+
+columns = st.columns(4)
+
+for column, state in zip(columns, states):
+
+    with column:
+
+        if state == state_machine.state:
+            st.success(
+                f"**{state.value}**\n\nAktueller Zustand"
+            )
+        else:
+            st.info(state.value)
+            
 
 if state_machine.history:
+    with st.expander("**Bisherige Zustandsübergänge:**"):
 
-    st.write("**Bisherige Zustandsübergänge:**")
+        for transition in state_machine.history:
 
-    for transition in state_machine.history:
-
-        st.write(
-            f"`{transition.from_state.value}` "
-            f"— **{transition.event}** → "
-            f"`{transition.to_state.value}`"
-        )
+            st.write(
+                f"`{transition.from_state.value}` "
+                f"— **{transition.event}** → "
+                f"`{transition.to_state.value}`"
+            )
 
 else:
 
@@ -360,6 +385,32 @@ with st.expander("Entwickleransicht anzeigen"):
 
     st.write(
         f"Aktueller Zustand: `{state_machine.state.value}`"
+    )
+    
+    st.write("**Mögliche Zustandsübergänge:**")
+
+    st.write(
+        "`Idle` — **touch** → `Greeting`"
+    )
+
+    st.write(
+        "`Greeting` — **speech** → `Dialogue_active`"
+    )
+
+    st.write(
+        "`Greeting` — **release** → `Goodbye`"
+    )
+
+    st.write(
+        "`Dialogue_active` — **speech** → `Dialogue_active`"
+    )
+
+    st.write(
+        "`Dialogue_active` — **release** → `Goodbye`"
+    )
+
+    st.write(
+        "`Goodbye` — **goodbye_finished** → `Idle`"
     )
     
     if st.session_state.last_processing_time is not None:
