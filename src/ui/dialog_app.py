@@ -1,5 +1,3 @@
-import time
-
 import streamlit as st
 
 from src.agent.context import create_context
@@ -12,432 +10,272 @@ from src.signals.repository import SignalRepository
 from src.simulation.events import EnvironmentState
 
 
+#Temp (später aus configuration skript) (TODO)
+DEFAULT_UV = 3
+DEFAULT_TEMPERATURE = 20
+DEFAULT_SOIL_MOISTURE = 50
+DEFAULT_TOUCH = False
+
 st.set_page_config(
-    page_title="Agent Birke – Dialog",
+    page_title="Agent Birke - Dialog",
     page_icon="🌳",
 )
 
+
 st.title("🌳 Agent Birke")
-st.header("Dialogsystem")
+st.write("Dialogsystem")
 
-
-# Zustandsautomat initialisieren
+"""initialize State Machine"""
+# TODO: Initialisierungen als Methoden schreiben?
 if "state_machine" not in st.session_state:
     st.session_state.state_machine = DialogStateMachine()
 
+if "dialog_history" not in st.session_state:
+    st.session_state.dialog_history = []
+
+if "last_prompt" not in st.session_state:
+    st.session_state.last_prompt = None
+
+if "last_answer" not in st.session_state:
+    st.session_state.last_answer = None
+
 state_machine = st.session_state.state_machine
 
-
-# Komponenten initialisieren
+"""initialize components"""
 repository = SignalRepository()
 rule_evaluator = RuleEvaluator()
 prompt_builder = PromptBuilder()
 ollama_client = OllamaClient()
 
 
-# Dialogverlauf initialisieren
-if "dialog_history" not in st.session_state:
-    st.session_state.dialog_history = []
+def get_environment() -> EnvironmentState:
+    """Read the latest environment state from the signal memory (Signalspeicher.db)."""
 
+    signal = repository.get_latest()
 
-# Letzten Umweltzustand aus dem Signalspeicher lesen
-signal = repository.get_latest()
+    if signal is None:
+        return EnvironmentState(
+            uv=DEFAULT_UV,
+            temperature=DEFAULT_TEMPERATURE,
+            soil_moisture=DEFAULT_SOIL_MOISTURE,
+            touch=DEFAULT_TOUCH,
+        )
 
-if signal is not None:
-
-    environment = EnvironmentState(
+    return EnvironmentState(
         uv=signal.uv,
         temperature=signal.temperature,
         soil_moisture=signal.soil_moisture,
         touch=signal.touch,
     )
 
-else:
 
-    # Fallback, falls noch kein Signal gespeichert wurde
-    environment = EnvironmentState(
-        uv=3,
-        temperature=20,
-        soil_moisture=70,
-        touch=False,
+def create_agent_context() :
+    """Create the current context of Agent Birke."""
+    
+    #TODO nicht gebraucht?
+    # Berührungszustand 
+		#if "touch_active" not in st.session_state:
+		#    st.session_state.touch_active = False
+
+    environment = get_environment()
+
+    conditions = rule_evaluator.evaluate(
+        soil_moisture=environment.soil_moisture,
+        temperature=environment.temperature,
+        uv=environment.uv,
+    )
+
+    return create_context(
+        dialog_state=state_machine.state,
+        environment=environment,
+        conditions=conditions,
     )
 
 
-# Umweltbedingungen bestimmen
-conditions = rule_evaluator.evaluate(
-    soil_moisture=environment.soil_moisture,
-    temperature=environment.temperature,
-    uv=environment.uv,
-)
+def generate_response(user_input: str) -> str:
+    """Create a prompt and generate a response with Ollama."""
+
+    context = create_agent_context()
+
+    prompt = prompt_builder.build(
+        user_input=user_input,
+        context=context,
+        dialog_history=st.session_state.dialog_history,
+    )
+
+    st.session_state.last_prompt = prompt
+
+    with st.spinner("🌱 Birke denkt nach..."):
+        answer = ollama_client.generate(prompt)
+
+    st.session_state.last_answer = answer
+
+    return answer
 
 
-# Aktuellen Kontext erstellen
-context = create_context(
-    dialog_state=state_machine.state,
-    environment=environment,
-    conditions=conditions,
-)
+def add_to_history(speaker: str, text: str) -> None:
+    """Add one message to the conversation history."""
+
+    st.session_state.dialog_history.append(
+        {
+            "speaker": speaker,
+            "text": text,
+        }
+    )
 
 
-# Berührungszustand
-if "touch_active" not in st.session_state:
-    st.session_state.touch_active = False
-
-
-# Automatischer Übergang von Goodbye zu Idle
-if state_machine.state == DialogState.GOODBYE:
-
-    time.sleep(state_machine.GOODBYE_DURATION)
-
-    state_machine.update()
-  
-    if state_machine.state == DialogState.IDLE:
-        st.session_state.dialog_history = []
-
-    if "last_prompt" in st.session_state:
-        del st.session_state.last_prompt
-
-    if "last_answer" in st.session_state:
-        del st.session_state.last_answer
-
-    if "last_processing_time" in st.session_state:
-        del st.session_state.last_processing_time
-
-    st.rerun()
-
-
-# Aktueller Dialogzustand
-st.subheader("Aktueller Dialogzustand")
-
-st.info(state_machine.state.value)
-
-
-# Umweltbedingungen
-st.subheader("Umweltbedingungen")
+st.subheader("Aktueller Zustand")
 
 st.write(
-    f"UV: {context.environment.uv}"
+    f"**Dialogzustand:** `{state_machine.state.value}`"
 )
 
-st.write(
-    f"Temperatur: {context.environment.temperature} °C"
-)
-
-st.write(
-    f"Bodenfeuchtigkeit: {context.environment.soil_moisture} %"
-)
-
-st.write(
-    f"Berührung: "
-    f"{'Ja' if context.environment.touch else 'Nein'}"
-)
-
-st.write("Aktive Bedingungen:")
-
-if context.conditions:
-
-    for condition in context.conditions:
-        st.write(f"• {condition}")
+# TODO
+# Darstellung des Zustandsautomaten (Graf neu)
 
 
-# Aktionen
-st.subheader("Aktionen")
+st.subheader("Umgebung")
+
+environment = get_environment()
 
 col1, col2, col3 = st.columns(3)
 
-
-# Birke berühren / loslassen
 with col1:
+    st.metric(
+        "UV-Index",
+        environment.uv,
+    )
 
-    if not st.session_state.touch_active:
-
-        if st.button("Birke berühren"):
-
-            st.session_state.touch_active = True
-
-            state_machine.handle_event("touch")
-
-            st.rerun()
-
-    else:
-
-        if st.button("Birke loslassen"):
-
-            st.session_state.touch_active = False
-
-            state_machine.handle_event("release")
-
-            st.rerun()
-
-
-# Gießen
 with col2:
+    st.metric(
+        "Temperatur",
+        f"{environment.temperature} °C",
+    )
 
-    if st.button("WIP Gießen"):
-
-        st.write(
-            "TODO: Gießen wird später mit "
-            "dem EnvironmentSimulator verbunden."
-        )
-
-
-# Platzhalter
 with col3:
+    st.metric(
+        "Bodenfeuchtigkeit",
+        f"{environment.soil_moisture} %",
+    )
 
-    st.write("")
+
+st.subheader("Berührung")
 
 
-# Texteingabe
-st.subheader("Sprache")
+if state_machine.state == DialogState.IDLE:
 
-st.write(
-    "Die Texteingabe ersetzt momentan die spätere "
-    "Spracheingabe durch STT."
-)
+    if st.button("Birke berühren"):
 
-if state_machine.state in [
+        state_machine.handle_event("touch")
+
+        st.rerun()
+
+
+elif state_machine.state in [
     DialogState.GREETING,
     DialogState.DIALOGUE_ACTIVE,
 ]:
 
-    user_input = st.text_input(
-        "Nutzereingabe",
-        placeholder="Was möchtest du der Birke sagen?",
-    )
+    if st.button("Birke loslassen"):
 
-    if st.button("Eingabe senden") and user_input:
-        start_time = time.perf_counter()
-
-        state_machine.handle_event("speech")
-
-        signal = repository.get_latest()
-
-        if signal is not None:
-
-            environment = EnvironmentState(
-                uv=signal.uv,
-                temperature=signal.temperature,
-                soil_moisture=signal.soil_moisture,
-                touch=signal.touch,
-            )
-
-        conditions = rule_evaluator.evaluate(
-            soil_moisture=environment.soil_moisture,
-            temperature=environment.temperature,
-            uv=environment.uv,
-        )
-
-        context = create_context(
-            dialog_state=state_machine.state,
-            environment=environment,
-            conditions=conditions,
-        )
-
-        prompt = prompt_builder.build(
-            user_input=user_input,
-            context=context,
-            dialog_history=st.session_state.dialog_history,
-        )
-
-        with st.spinner("🌱 Birke denkt nach..."):
-
-            try:
-                answer = ollama_client.generate(prompt)
-
-            except Exception as error:
-
-                answer = (
-                    f"Fehler bei der Verbindung mit Ollama: {error}"
-                )
-
-        processing_time = time.perf_counter() - start_time
-
-        st.session_state.last_prompt = prompt
-        st.session_state.last_answer = answer
-        st.session_state.last_processing_time = processing_time
-
-        st.session_state.dialog_history.append(
-            {
-                "speaker": "Nutzer",
-                "text": user_input,
-            }
-        )
-
-        st.session_state.dialog_history.append(
-            {
-                "speaker": "Birke",
-                "text": answer,
-            }
-        )
+        state_machine.handle_event("release")
 
         st.rerun()
 
-else:
 
-    st.info(
-        "Spracheingabe ist nur möglich, "
-        "wenn die Birke berührt wird."
+elif state_machine.state == DialogState.GOODBYE:
+
+    st.info("Das Gespräch wird beendet.")
+
+
+if state_machine.state == DialogState.GREETING:
+
+    st.subheader("Begrüßung")
+
+    if st.session_state.last_answer is None:
+
+        answer = generate_response("")
+
+        add_to_history("Birke", answer)
+
+        state_machine.handle_event("greeting_finished")
+
+        st.rerun()
+
+
+elif state_machine.state == DialogState.DIALOGUE_ACTIVE:
+
+    st.subheader("Gespräch")
+
+    user_input = st.text_input(
+        "Was möchtest du der Birke sagen?",
+        key="user_input",
     )
 
+    if st.button("Eingabe senden"):
 
-# Generierter Prompt
-if "last_prompt" in st.session_state:
+        if user_input.strip():
 
-    st.subheader("Generierter Prompt")
+            answer = generate_response(user_input)
 
-    st.code(
-        st.session_state.last_prompt,
-        language="text",
-    )
+            add_to_history("Nutzer", user_input)
+            add_to_history("Birke", answer)
 
+            st.session_state.user_input = ""
 
-# Generierte Antwort
-if "last_answer" in st.session_state:
-
-    st.subheader("Generierte Antwort")
-
-    st.write(
-        st.session_state.last_answer
-    )
+            st.rerun()
 
 
-# Dialogverlauf
-st.subheader("Dialogverlauf")
+elif state_machine.state == DialogState.GOODBYE:
 
-if not st.session_state.dialog_history:
+    st.subheader("Verabschiedung")
 
-    st.write("Noch keine Dialogbeiträge.")
+    if st.session_state.last_answer is None:
 
-else:
+        answer = generate_response("")
+
+        add_to_history("Birke", answer)
+
+        state_machine.handle_event("goodbye_finished")
+
+        st.session_state.dialog_history = []
+        st.session_state.last_prompt = None
+        st.session_state.last_answer = None
+        # TODO Automatischer Übergang von Goodbye zu Idle testen
+
+        st.rerun()
+
+
+if st.session_state.dialog_history:
+
+    st.subheader("Gesprächsverlauf")
 
     for message in st.session_state.dialog_history:
 
-        st.write(
-            f"**{message['speaker']}:** "
-            f"{message['text']}"
-        )
+        if message["speaker"] == "Nutzer":
+            st.write(f"**Nutzer:** {message['text']}")
+
+        else:
+            st.write(f"**Birke:** {message['text']}")
 
 
-# Zustandsautomat
-st.subheader("Zustandsautomat")
+if st.session_state.last_prompt:
 
-st.write(
-    "Der aktuelle Zustand des Dialogautomaten ist:"
-)
-
-st.info(state_machine.state.value)
+    with st.expander("Prompt anzeigen"):
+        st.text(st.session_state.last_prompt)
 
 
-# Darstellung des Zustandsautomaten
-current_state = state_machine.state.value
-
-graph = f"""
-digraph {{
-    rankdir=LR;
-
-    Idle [
-        label="Idle",
-        style="{'filled' if current_state == 'Idle' else 'solid'}"
-    ];
-
-    Greeting [
-        label="Greeting",
-        style="{'filled' if current_state == 'Greeting' else 'solid'}"
-    ];
-
-    Dialogue_active [
-        label="Dialogue_active",
-        style="{'filled' if current_state == 'Dialogue_active' else 'solid'}"
-    ];
-
-    Goodbye [
-        label="Goodbye",
-        style="{'filled' if current_state == 'Goodbye' else 'solid'}"
-    ];
-
-    Idle -> Greeting [
-        label="Birke berühren"
-    ];
-
-    Greeting -> Dialogue_active [
-        label="Spracheingabe"
-    ];
-
-    Dialogue_active -> Goodbye [
-        label="Birke loslassen"
-    ];
-
-    Goodbye -> Idle [
-        label="automatisch"
-    ];
-}}
-"""
-
-st.graphviz_chart(graph)
-
-
-# Zustandsverlauf
-st.subheader("Zustandsverlauf")
-
-if not state_machine.history:
-
-    st.write("Noch keine Zustandswechsel.")
-
-else:
-
-    for transition in state_machine.history:
-
-        st.write(
-            f"{transition.from_state.value} "
-            f"-- {transition.event} --> "
-            f"{transition.to_state.value}"
-        )
-
-
-# Entwicklerbereich
-st.subheader("Entwicklerbereich")
+st.subheader("Entwickleransicht")
 
 st.write(
-    "Hier kann der Dialogzustand für Testzwecke "
-    "manuell verändert werden."
+    f"Aktueller Zustand: `{state_machine.state.value}`"
 )
 
-selected_state = st.selectbox(
-    "Dialogzustand auswählen",
-    list(DialogState),
-    format_func=lambda state: state.value,
-)
+if st.button("Gespräch zurücksetzen"):
 
-if st.button("Zustand übernehmen"):
-
-    state_machine.state = selected_state
+    st.session_state.state_machine = DialogStateMachine()
+    st.session_state.dialog_history = []
+    st.session_state.last_prompt = None
+    st.session_state.last_answer = None
 
     st.rerun()
-
-
-# Bearbeitungszeit
-st.subheader("Bearbeitungszeit")
-
-if "last_processing_time" in st.session_state:
-
-    st.write(
-        f"{st.session_state.last_processing_time:.2f} Sekunden"
-    )
-
-else:
-
-    st.write(
-        "Noch keine Anfrage verarbeitet."
-    )
-
-
-# Spracheingabe und Sprachausgabe
-st.subheader("Sprache")
-
-st.write(
-    "🎤 Spracheingabe: TODO – wird später durch STT ersetzt"
-)
-
-st.write(
-    "🔊 Sprachausgabe: TODO – wird später durch TTS ersetzt"
-)
