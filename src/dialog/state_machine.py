@@ -13,7 +13,7 @@ class StateTransition:
 
 
 class DialogStateMachine:
-    """Controls transitions between dialogue states."""
+    """Controls the dialogue states and their transitions."""
 
     def __init__(self):
         self.state = DialogState.IDLE

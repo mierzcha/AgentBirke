@@ -52,6 +52,9 @@ if "goodbye_done" not in st.session_state:
 if "history_clear_at" not in st.session_state:
     st.session_state.history_clear_at = None
 
+if "last_processing_time" not in st.session_state:
+    st.session_state.last_processing_time = None
+
 
 state_machine = st.session_state.state_machine
 
@@ -110,6 +113,8 @@ def create_agent_context():
 
 def generate_response(user_input: str) -> str:
     """Create a prompt and generate a response with Ollama."""
+    
+    start_time = time.perf_counter()
 
     context = create_agent_context()
 
@@ -123,9 +128,11 @@ def generate_response(user_input: str) -> str:
 
     with st.spinner("🌱 Birke denkt nach..."):
         answer = ollama_client.generate(prompt)
-        print("ollama benachrichtigt (TODO)")
+        
 
+    processing_time = time.perf_counter() - start_time
     st.session_state.last_answer = answer
+    st.session_state.last_processing_time = processing_time
 
     return answer
 
@@ -147,10 +154,25 @@ st.write(
     f"**Dialogzustand:** `{state_machine.state.value}`"
 )
 
+# visualization of State transitions
 
-# TODO
-# Darstellung des Zustandsautomaten (Graf neu)
+if state_machine.history:
 
+    st.write("**Bisherige Zustandsübergänge:**")
+
+    for transition in state_machine.history:
+
+        st.write(
+            f"`{transition.from_state.value}` "
+            f"— **{transition.event}** → "
+            f"`{transition.to_state.value}`"
+        )
+
+else:
+
+    st.write("Noch keine Zustandsübergänge.")
+    
+# Environment
 
 st.subheader("Umgebung")
 
@@ -339,6 +361,12 @@ with st.expander("Entwickleransicht anzeigen"):
     st.write(
         f"Aktueller Zustand: `{state_machine.state.value}`"
     )
+    
+    if st.session_state.last_processing_time is not None:
+        st.write(
+		        f"Bearbeitungszeit: "
+		        f"{st.session_state.last_processing_time:.2f} Sekunden"
+		    )
 
     if st.session_state.last_prompt:
 
