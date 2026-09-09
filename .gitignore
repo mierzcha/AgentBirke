@@ -22,6 +22,9 @@ openwebui-env/
 # Logs
 *.log
 
+# Generated dialogue logs
+data/logs/
+
 # Generated audio
 data/audio/*
 !data/audio/.gitkeep

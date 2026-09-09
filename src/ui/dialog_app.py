@@ -10,6 +10,7 @@ from src.llm.client import OllamaClient
 from src.rules.evaluator import RuleEvaluator
 from src.signals.repository import SignalRepository
 from src.simulation.events import EnvironmentState
+from src.dialog.logger import DialogueLogger
 
 
 # Temp (später aus configuration Skript) (TODO)
@@ -60,6 +61,7 @@ repository = SignalRepository()
 rule_evaluator = RuleEvaluator()
 prompt_builder = PromptBuilder()
 ollama_client = OllamaClient()
+dialogue_logger = DialogueLogger()
 
 
 def get_environment() -> EnvironmentState:
@@ -294,6 +296,10 @@ elif state_machine.state == DialogState.GOODBYE:
         answer = generate_response("")
 
         add_to_history("Birke", answer)
+        
+        dialogue_logger.save_dialogue(
+            st.session_state.dialog_history
+        )
 
         st.session_state.goodbye_done = True
 
