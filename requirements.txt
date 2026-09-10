@@ -1,5 +1,3 @@
 python-dotenv
 requests
 streamlit
-faster-whisper
-piper-tts
