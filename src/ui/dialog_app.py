@@ -128,7 +128,7 @@ def add_to_history(speaker: str, text: str) -> None:
 if st.session_state.last_audio_path is not None:
     st.audio(
         st.session_state.last_audio_path,
-        format="audio/wav",
+        format="audio/wav", autoplay=True
     )
 
 st.subheader("Aktueller Zustand")
