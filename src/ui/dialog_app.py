@@ -2,24 +2,21 @@ import time
 
 import streamlit as st
 
-from src.agent.context import create_context
-from src.dialog.prompt_builder import PromptBuilder
 from src.dialog.state_machine import DialogStateMachine
 from src.dialog.states import DialogState
-from src.llm.client import OllamaClient
-from src.rules.evaluator import RuleEvaluator
-from src.signals.repository import SignalRepository
-from src.simulation.events import EnvironmentState
-from src.dialog.logger import DialogueLogger
-from src.tts.piper_client import PiperClient
-from src.stt.whisper_client import WhisperClient
+from src.dialog.service import DialogService
 
+from src.ui.dialog_components import (
+    initialize_session_state,
+    create_repository,
+    create_rule_evaluator,
+    create_prompt_builder,
+    create_ollama_client,
+    create_dialogue_logger,
+    create_piper_client,
+    create_whisper_client,
+)
 
-# Temp (später aus configuration Skript) (TODO)
-DEFAULT_UV = 3
-DEFAULT_TEMPERATURE = 20
-DEFAULT_SOIL_MOISTURE = 50
-DEFAULT_TOUCH = False
 
 DIALOG_HISTORY_DISPLAY_TIME = 15
 
@@ -29,152 +26,41 @@ st.set_page_config(
     page_icon="🌳",
 )
 
-
 st.title("🌳 Agent Birke")
 st.header("Dialogsystem")
 
 
-# Initializing State Machine
+# Initialize session state
 
-if "state_machine" not in st.session_state:
-    st.session_state.state_machine = DialogStateMachine()
-
-if "dialog_history" not in st.session_state:
-    st.session_state.dialog_history = []
-
-if "last_prompt" not in st.session_state:
-    st.session_state.last_prompt = None
-
-if "last_answer" not in st.session_state:
-    st.session_state.last_answer = None
-
-if "goodbye_done" not in st.session_state:
-    st.session_state.goodbye_done = False
-
-if "history_clear_at" not in st.session_state:
-    st.session_state.history_clear_at = None
-
-if "last_processing_time" not in st.session_state:
-    st.session_state.last_processing_time = None
-
-if "last_audio_path" not in st.session_state:
-    st.session_state.last_audio_path = None
-
-if "last_audio_id" not in st.session_state:
-    st.session_state.last_audio_id = None
-
+initialize_session_state()
 
 state_machine = st.session_state.state_machine
 
 
-# Initializing components
+# Initialize components
 
-repository = SignalRepository()
-rule_evaluator = RuleEvaluator()
-prompt_builder = PromptBuilder()
-ollama_client = OllamaClient()
-dialogue_logger = DialogueLogger()
+repository = create_repository()
+rule_evaluator = create_rule_evaluator()
+prompt_builder = create_prompt_builder()
+ollama_client = create_ollama_client()
+dialogue_logger = create_dialogue_logger()
+piper_client = create_piper_client()
+whisper_client = create_whisper_client()
 
-piper_client = PiperClient(
-    model_path="models/piper/de_DE-ramona-low.onnx"
+dialog_service = DialogService(
+    repository=repository,
+    rule_evaluator=rule_evaluator,
+    prompt_builder=prompt_builder,
+    ollama_client=ollama_client,
+    piper_client=piper_client,
+    whisper_client=whisper_client,
 )
 
-whisper_client = WhisperClient()
 
-
-def get_environment() -> EnvironmentState:
-    """Read the latest environment state from the Signalspeicher."""
-
-    signal = repository.get_latest()
-
-    if signal is None:
-
-        return EnvironmentState(
-            uv=DEFAULT_UV,
-            temperature=DEFAULT_TEMPERATURE,
-            soil_moisture=DEFAULT_SOIL_MOISTURE,
-            touch=DEFAULT_TOUCH,
-        )
-
-    return EnvironmentState(
-        uv=signal.uv,
-        temperature=signal.temperature,
-        soil_moisture=signal.soil_moisture,
-        touch=signal.touch,
-    )
-
-
-def create_agent_context():
-    """Create the current context of Agent Birke."""
-
-    environment = get_environment()
-
-    conditions = rule_evaluator.evaluate(
-        soil_moisture=environment.soil_moisture,
-        temperature=environment.temperature,
-        uv=environment.uv,
-    )
-
-    return create_context(
-        dialog_state=state_machine.state,
-        environment=environment,
-        conditions=conditions,
-    )
-
-
-def generate_response(user_input: str) -> str:
-    """Create a prompt, generate a response and create speech output."""
-
-    start_time = time.perf_counter()
-
-    context = create_agent_context()
-
-    prompt = prompt_builder.build(
-        user_input=user_input,
-        context=context,
-        dialog_history=st.session_state.dialog_history,
-    )
-
-    st.session_state.last_prompt = prompt
-
-    with st.spinner("🌱 Birke denkt nach..."):
-
-        answer = ollama_client.generate(prompt)
-
-        audio_path = piper_client.generate(
-            text=answer,
-            output_filename=(
-                f"response_{int(time.time() * 1000)}.wav"
-            ),
-        )
-
-    processing_time = time.perf_counter() - start_time
-
-    st.session_state.last_answer = answer
-    st.session_state.last_processing_time = processing_time
-    st.session_state.last_audio_path = audio_path
-
-    return answer
-
-
-def transcribe_audio(audio_input) -> str:
-    """Save an audio recording and transcribe it with Faster-Whisper."""
-
-    audio_path = "data/audio/input.wav"
-
-    with open(audio_path, "wb") as file:
-        file.write(audio_input.getbuffer())
-
-    with st.spinner("🌱 Birke hört zu..."):
-
-        text = whisper_client.transcribe(
-            audio_path
-        )
-
-    return text.strip()
-
-
-def add_to_history(speaker: str, text: str) -> None:
+def add_to_history(
+    speaker: str,
+    text: str,
+) -> None:
     """Add one message to the conversation history."""
 
     st.session_state.dialog_history.append(
@@ -185,152 +71,233 @@ def add_to_history(speaker: str, text: str) -> None:
     )
 
 
-# Audio output
+def generate_agent_response(
+    user_input: str,
+) -> str:
+    """Generate an agent response and store its result."""
 
-if st.session_state.last_audio_path is not None:
-
-    st.audio(
-        st.session_state.last_audio_path,
-        format="audio/wav",
-        autoplay=True,
+    (
+        answer,
+        audio_path,
+        processing_time,
+        prompt,
+    ) = dialog_service.generate_response(
+        user_input=user_input,
+        dialog_state=state_machine.state,
+        dialog_history=st.session_state.dialog_history,
     )
 
+    st.session_state.last_answer = answer
+    st.session_state.last_audio_path = audio_path
+    st.session_state.last_processing_time = processing_time
+    st.session_state.last_prompt = prompt
 
-# Current state
+    return answer
 
-st.subheader("Aktueller Zustand")
+def process_input(
+    user_input: str,
+) -> None:
+    """Process a user input and generate the response."""
 
-st.write(
-    f"**Dialogzustand:** `{state_machine.state.value}`"
-)
+    if state_machine.state == DialogState.GREETING:
 
+        state_machine.handle_event("speech")
 
-# Visualization of State and State transitions
+    answer = generate_agent_response(
+        user_input
+    )
 
-st.subheader("Zustandsautomat")
+    add_to_history(
+        "Nutzer",
+        user_input,
+    )
 
-st.write(
-    f"**Aktueller Zustand:** `{state_machine.state.value}`"
-)
+    add_to_history(
+        "Birke",
+        answer,
+    )
 
+    st.rerun()
 
-states = [
-    DialogState.IDLE,
-    DialogState.GREETING,
-    DialogState.DIALOGUE_ACTIVE,
-    DialogState.GOODBYE,
-]
+def process_audio_input(
+    audio_input,
+) -> None:
+    """Transcribe and process a new audio recording."""
 
+    audio_id = audio_input.file_id
 
-columns = st.columns(4)
+    if audio_id == st.session_state.last_audio_id:
+        return
 
+    st.session_state.last_audio_id = audio_id
 
-for column, state in zip(columns, states):
+    with st.spinner("🌱 Birke hört zu..."):
 
-    with column:
-
-        if state == state_machine.state:
-
-            st.success(
-                f"**{state.value}**\n\nAktueller Zustand"
+        recognized_text = (
+            dialog_service.transcribe_audio(
+                audio_input
             )
+        )
 
-        else:
+    st.write(
+        f"**Erkannt:** {recognized_text}"
+    )
 
-            st.info(state.value)
+    if recognized_text:
 
-
-if state_machine.history:
-
-    with st.expander("**Bisherige Zustandsübergänge:**"):
-
-        for transition in state_machine.history:
-
-            st.write(
-                f"`{transition.from_state.value}` "
-                f"— **{transition.event}** → "
-                f"`{transition.to_state.value}`"
-            )
-
-else:
-
-    st.write("Noch keine Zustandsübergänge.")
+        process_input(
+            recognized_text
+        )
 
 
-# Environment
+def show_audio_output() -> None:
+    """Display the latest generated speech output."""
 
-st.subheader("Umgebung")
+    if st.session_state.last_audio_path is not None:
 
-environment = get_environment()
+        st.audio(
+            st.session_state.last_audio_path,
+            format="audio/wav",
+            autoplay=True,
+        )
 
-col1, col2, col3 = st.columns(3)
 
+def show_current_state() -> None:
+    """Display the current dialogue state."""
 
-with col1:
+    st.subheader("Aktueller Zustand")
 
-    st.metric(
-        "UV-Index",
-        environment.uv,
+    st.write(
+        f"**Dialogzustand:** `{state_machine.state.value}`"
     )
 
 
-with col2:
+def show_state_machine() -> None:
+    """Display the current state and state transitions."""
 
-    st.metric(
-        "Temperatur",
-        f"{environment.temperature} °C",
+    st.subheader("Zustandsautomat")
+
+    st.write(
+        f"**Aktueller Zustand:** `{state_machine.state.value}`"
     )
 
+    states = [
+        DialogState.IDLE,
+        DialogState.GREETING,
+        DialogState.DIALOGUE_ACTIVE,
+        DialogState.GOODBYE,
+    ]
 
-with col3:
+    columns = st.columns(4)
 
-    st.metric(
-        "Bodenfeuchtigkeit",
-        f"{environment.soil_moisture} %",
-    )
+    for column, state in zip(columns, states):
 
+        with column:
 
-# Touch
+            if state == state_machine.state:
 
-st.subheader("Berührung")
+                st.success(
+                    f"**{state.value}**\n\nAktueller Zustand"
+                )
 
+            else:
 
-if state_machine.state == DialogState.IDLE:
+                st.info(state.value)
 
-    if st.button("Birke berühren"):
+    if state_machine.history:
 
-        state_machine.handle_event("touch")
+        with st.expander(
+            "**Bisherige Zustandsübergänge:**"
+        ):
 
-        st.session_state.goodbye_done = False
-        st.session_state.history_clear_at = None
+            for transition in state_machine.history:
 
-        st.session_state.last_audio_id = None
+                st.write(
+                    f"`{transition.from_state.value}` "
+                    f"— **{transition.event}** → "
+                    f"`{transition.to_state.value}`"
+                )
 
-        st.rerun()
+    else:
 
-
-elif state_machine.state in [
-    DialogState.GREETING,
-    DialogState.DIALOGUE_ACTIVE,
-]:
-
-    if st.button("Birke loslassen"):
-
-        state_machine.handle_event("release")
-
-        st.session_state.goodbye_done = False
-
-        st.rerun()
-
-
-elif state_machine.state == DialogState.GOODBYE:
-
-    st.info("Das Gespräch wird beendet.")
+        st.write(
+            "Noch keine Zustandsübergänge."
+        )
 
 
-# Dialogue history
+def show_environment() -> None:
+    """Display the current environmental values."""
 
-if st.session_state.dialog_history:
+    st.subheader("Umgebung")
+
+    environment = dialog_service.get_environment()
+
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+
+        st.metric(
+            "UV-Index",
+            environment.uv,
+        )
+
+    with col2:
+
+        st.metric(
+            "Temperatur",
+            f"{environment.temperature} °C",
+        )
+
+    with col3:
+
+        st.metric(
+            "Bodenfeuchtigkeit",
+            f"{environment.soil_moisture} %",
+        )
+
+
+def show_touch_control() -> None:
+    """Display and handle the touch control."""
+
+    st.subheader("Berührung")
+
+    if state_machine.state == DialogState.IDLE:
+
+        if st.button("Birke berühren"):
+
+            state_machine.handle_event("touch")
+
+            st.session_state.goodbye_done = False
+            st.session_state.history_clear_at = None
+            st.session_state.last_audio_id = None
+
+            st.rerun()
+
+    elif state_machine.state in [
+        DialogState.GREETING,
+        DialogState.DIALOGUE_ACTIVE,
+    ]:
+
+        if st.button("Birke loslassen"):
+
+            state_machine.handle_event("release")
+
+            st.session_state.goodbye_done = False
+
+            st.rerun()
+
+    elif state_machine.state == DialogState.GOODBYE:
+
+        st.info(
+            "Das Gespräch wird beendet."
+        )
+
+
+def show_dialogue_history() -> None:
+    """Display the current dialogue history."""
+
+    if not st.session_state.dialog_history:
+        return
 
     st.subheader("Gesprächsverlauf")
 
@@ -349,61 +316,48 @@ if st.session_state.dialog_history:
             )
 
 
-# Greeting
+def show_text_and_voice_input(
+    text_key: str,
+    audio_key: str,
+) -> None:
+    """Display text and voice input controls."""
 
-if state_machine.state == DialogState.GREETING:
+    user_input = st.text_input(
+        "Texteingabe",
+        key=text_key,
+    )
+
+    submitted = st.button(
+        "Eingabe senden",
+        key=f"{text_key}_button",
+    )
+
+    audio_input = st.audio_input(
+        "Oder sprich mit der Birke",
+        sample_rate=16000,
+        key=audio_key,
+    )
+
+    if submitted and user_input.strip():
+
+        process_input(
+            user_input
+        )
+
+    if audio_input is not None:
+
+        process_audio_input(
+            audio_input
+        )
+
+
+def handle_greeting() -> None:
+    """Handle the greeting state."""
 
     if st.session_state.last_answer is None:
 
-        answer = generate_response("")
-
-        add_to_history(
-            "Birke",
-            answer,
-        )
-
-        st.rerun()
-
-
-    st.write("Was möchtest du der Birke sagen?")
-
-
-    # Text input
-
-    user_input = st.text_input(
-        "Texteingabe",
-        key="greeting_text_input",
-    )
-
-
-    submitted = st.button(
-        "Eingabe senden",
-        key="greeting_text_button",
-    )
-
-
-    # Voice input
-
-    audio_input = st.audio_input(
-        "Oder sprich mit der Birke",
-        sample_rate=16000,
-        key="greeting_audio",
-    )
-
-
-    # Handle text input
-
-    if submitted and user_input.strip():
-
-        state_machine.handle_event("speech")
-
-        answer = generate_response(
-            user_input
-        )
-
-        add_to_history(
-            "Nutzer",
-            user_input,
+        answer = generate_agent_response(
+            ""
         )
 
         add_to_history(
@@ -413,144 +367,37 @@ if state_machine.state == DialogState.GREETING:
 
         st.rerun()
 
+    st.write(
+        "Was möchtest du der Birke sagen?"
+    )
 
-    # Handle voice input
-
-    if audio_input is not None:
-
-        audio_id = audio_input.file_id
-
-        if audio_id != st.session_state.last_audio_id:
-
-            st.session_state.last_audio_id = audio_id
-
-            recognized_text = transcribe_audio(
-                audio_input
-            )
-
-            st.write(
-                f"**Erkannt:** {recognized_text}"
-            )
-
-            if recognized_text:
-
-                state_machine.handle_event("speech")
-
-                answer = generate_response(
-                    recognized_text
-                )
-
-                add_to_history(
-                    "Nutzer",
-                    recognized_text,
-                )
-
-                add_to_history(
-                    "Birke",
-                    answer,
-                )
-
-                st.rerun()
+    show_text_and_voice_input(
+        text_key="greeting_text_input",
+        audio_key="greeting_audio",
+    )
 
 
-# Dialogue active
-
-elif state_machine.state == DialogState.DIALOGUE_ACTIVE:
+def handle_dialogue_active() -> None:
+    """Handle the active dialogue state."""
 
     st.subheader("Gespräch")
 
-
-    # Text input
-
-    user_input = st.text_input(
-        "Texteingabe",
-        key="dialog_text_input",
+    show_text_and_voice_input(
+        text_key="dialog_text_input",
+        audio_key="dialog_audio",
     )
 
 
-    submitted = st.button(
-        "Eingabe senden",
-        key="dialog_text_button",
-    )
-
-
-    # Voice input
-
-    audio_input = st.audio_input(
-        "Oder sprich mit der Birke",
-        sample_rate=16000,
-        key="dialog_audio",
-    )
-
-
-    # Handle text input
-
-    if submitted and user_input.strip():
-
-        answer = generate_response(
-            user_input
-        )
-
-        add_to_history(
-            "Nutzer",
-            user_input,
-        )
-
-        add_to_history(
-            "Birke",
-            answer,
-        )
-
-        st.rerun()
-
-
-    # Handle voice input
-
-    if audio_input is not None:
-
-        audio_id = audio_input.file_id
-
-        if audio_id != st.session_state.last_audio_id:
-
-            st.session_state.last_audio_id = audio_id
-
-            recognized_text = transcribe_audio(
-                audio_input
-            )
-
-            st.write(
-                f"**Erkannt:** {recognized_text}"
-            )
-
-            if recognized_text:
-
-                answer = generate_response(
-                    recognized_text
-                )
-
-                add_to_history(
-                    "Nutzer",
-                    recognized_text,
-                )
-
-                add_to_history(
-                    "Birke",
-                    answer,
-                )
-
-                st.rerun()
-
-
-# Goodbye
-
-elif state_machine.state == DialogState.GOODBYE:
+def handle_goodbye() -> None:
+    """Handle the goodbye state."""
 
     st.subheader("Verabschiedung")
 
-
     if not st.session_state.goodbye_done:
 
-        answer = generate_response("")
+        answer = generate_agent_response(
+            ""
+        )
 
         add_to_history(
             "Birke",
@@ -568,112 +415,160 @@ elif state_machine.state == DialogState.GOODBYE:
         )
 
         st.session_state.history_clear_at = (
-            time.time() + DIALOG_HISTORY_DISPLAY_TIME
+            time.time()
+            + DIALOG_HISTORY_DISPLAY_TIME
         )
 
         st.rerun()
 
 
-# Delete dialogue history after display time
+def clear_old_dialogue_history() -> None:
+    """Clear the dialogue history after the display time."""
 
-if state_machine.state == DialogState.IDLE:
+    if state_machine.state != DialogState.IDLE:
+        return
 
-    if st.session_state.history_clear_at is not None:
+    if st.session_state.history_clear_at is None:
+        return
 
-        if time.time() >= st.session_state.history_clear_at:
+    if time.time() >= st.session_state.history_clear_at:
+
+        st.session_state.dialog_history = []
+        st.session_state.last_prompt = None
+        st.session_state.last_answer = None
+        st.session_state.last_audio_path = None
+        st.session_state.last_audio_id = None
+        st.session_state.history_clear_at = None
+
+        st.rerun()
+
+    else:
+
+        time.sleep(0.5)
+
+        st.rerun()
+
+
+def show_developer_view() -> None:
+    """Display the developer information."""
+
+    with st.expander(
+        "Entwickleransicht anzeigen"
+    ):
+
+        st.subheader(
+            "Entwickleransicht"
+        )
+
+        st.write(
+            f"Aktueller Zustand: "
+            f"`{state_machine.state.value}`"
+        )
+
+        st.write(
+            "**Mögliche Zustandsübergänge:**"
+        )
+
+        st.write(
+            "`Idle` — **touch** → `Greeting`"
+        )
+
+        st.write(
+            "`Greeting` — **speech** → "
+            "`Dialogue_active`"
+        )
+
+        st.write(
+            "`Greeting` — **release** → "
+            "`Goodbye`"
+        )
+
+        st.write(
+            "`Dialogue_active` — **speech** → "
+            "`Dialogue_active`"
+        )
+
+        st.write(
+            "`Dialogue_active` — **release** → "
+            "`Goodbye`"
+        )
+
+        st.write(
+            "`Goodbye` — **goodbye_finished** → "
+            "`Idle`"
+        )
+
+        if (
+            st.session_state.last_processing_time
+            is not None
+        ):
+
+            st.write(
+                f"Bearbeitungszeit: "
+                f"{st.session_state.last_processing_time:.2f} "
+                f"Sekunden"
+            )
+
+        if st.session_state.last_prompt:
+
+            with st.expander(
+                "Prompt anzeigen"
+            ):
+
+                st.text(
+                    st.session_state.last_prompt
+                )
+
+        if st.button(
+            "Gespräch zurücksetzen"
+        ):
+
+            st.session_state.state_machine = (
+                DialogStateMachine()
+            )
 
             st.session_state.dialog_history = []
             st.session_state.last_prompt = None
             st.session_state.last_answer = None
+            st.session_state.last_processing_time = None
             st.session_state.last_audio_path = None
             st.session_state.last_audio_id = None
+            st.session_state.goodbye_done = False
             st.session_state.history_clear_at = None
 
             st.rerun()
 
-        else:
 
-            time.sleep(0.5)
+# Display application
 
-            st.rerun()
+show_audio_output()
 
+show_current_state()
 
-# Developer view
+show_state_machine()
 
-with st.expander("Entwickleransicht anzeigen"):
+show_environment()
 
-    st.subheader("Entwickleransicht")
+show_touch_control()
 
-    st.write(
-        f"Aktueller Zustand: `{state_machine.state.value}`"
-    )
+show_dialogue_history()
 
 
-    st.write("**Mögliche Zustandsübergänge:**")
+# Handle current dialogue state
+
+if state_machine.state == DialogState.GREETING:
+
+    handle_greeting()
+
+elif state_machine.state == DialogState.DIALOGUE_ACTIVE:
+
+    handle_dialogue_active()
+
+elif state_machine.state == DialogState.GOODBYE:
+
+    handle_goodbye()
 
 
-    st.write(
-        "`Idle` — **touch** → `Greeting`"
-    )
+clear_old_dialogue_history()
 
-    st.write(
-        "`Greeting` — **speech** → `Dialogue_active`"
-    )
-
-    st.write(
-        "`Greeting` — **release** → `Goodbye`"
-    )
-
-    st.write(
-        "`Dialogue_active` — **speech** → `Dialogue_active`"
-    )
-
-    st.write(
-        "`Dialogue_active` — **release** → `Goodbye`"
-    )
-
-    st.write(
-        "`Goodbye` — **goodbye_finished** → `Idle`"
-    )
-
-
-    if st.session_state.last_processing_time is not None:
-
-        st.write(
-            f"Bearbeitungszeit: "
-            f"{st.session_state.last_processing_time:.2f} Sekunden"
-        )
-
-
-    if st.session_state.last_prompt:
-
-        with st.expander("Prompt anzeigen"):
-
-            st.text(
-                st.session_state.last_prompt
-            )
-
-
-    if st.button("Gespräch zurücksetzen"):
-
-        st.session_state.state_machine = (
-            DialogStateMachine()
-        )
-
-        st.session_state.dialog_history = []
-
-        st.session_state.last_prompt = None
-
-        st.session_state.last_answer = None
-
-        st.session_state.last_processing_time = None
-
-        st.session_state.last_audio_path = None
-
-        st.session_state.last_audio_id = None
-
-        st.session_state.goodbye_done = False
-
-        st.session_state.history_clear_at = None
-
-        st.rerun()
+show_developer_view()
