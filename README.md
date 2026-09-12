@@ -18,6 +18,7 @@ python -m pip install --upgrade pip
 pip install -r requirements.txt
 pip install open-webui
 pip install piper-tts
+pip install faster-whisper
 ```
 
 ## Signalspeicher initialisieren
