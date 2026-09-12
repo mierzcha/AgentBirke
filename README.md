@@ -1,6 +1,7 @@
 # AgentBirke
 
 Version 0 (WIP)
+TODO einheitlich englisch oder deutsch
 
 ## Create Virtual Environment
 
@@ -40,6 +41,32 @@ visit localhost:3000
 create an Administrator Account
 create an API Key
 write API Key in your own .env
+
+## Umweltsimulation starten
+
+```bash
+cd ~/BA/AgentBirke
+PYTHONPATH=. streamlit run src/ui/simulation_app.py
+```
+open the Network URL
+
+## Dialogsystem starten
+
+```bash
+cd ~/BA/AgentBirke
+PYTHONPATH=. streamlit run src/ui/dialog_app.py
+```
+
+auf lokalem PC in Powershell ausführen:
+```bash
+ssh -L <PORT>:localhost:<PORT> <USERNAME>@dipa.th-brandenburg.de
+```
+PORT = Portnummer, auf dem die Streamlit Anwendunng läuft
+USERNAME = Username auf dem Dipa-Server
+
+Terminal geöffnet lassen
+
+http://localhost:<PORT>/ im Browser aufrufen (Localhost für die Mikrofonberechtigung ohne https)
 
 ## Run Tests
 
