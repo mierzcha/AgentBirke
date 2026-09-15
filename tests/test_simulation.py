@@ -10,7 +10,6 @@ def main():
     simulator.set_uv(5)
     simulator.set_temperature(25)
     simulator.set_soil_moisture(50)
-    simulator.set_touch(True)
 
     simulator.save_state("active_dialog")
 

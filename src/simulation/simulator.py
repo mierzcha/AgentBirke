@@ -14,8 +14,7 @@ class EnvironmentSimulator:
         self.state = EnvironmentState(
             uv=3,
             temperature=20,
-            soil_moisture=70,
-            touch=False,
+            soil_moisture=70, #TODO
         )
 
     def set_uv(self, value: int):
@@ -30,10 +29,6 @@ class EnvironmentSimulator:
         """Set the simulated soil moisture."""
         self.state.soil_moisture = value
 
-    def set_touch(self, value: bool):
-        """Set the simulated touch state."""
-        self.state.touch = value
-
     def save_state(self, dialog_state: str = "unknown"):
         """Save the current environment state to the Signalspeicher."""
 
@@ -41,7 +36,6 @@ class EnvironmentSimulator:
             uv=self.state.uv,
             temperature=self.state.temperature,
             soil_moisture=self.state.soil_moisture,
-            touch=self.state.touch,
             state=dialog_state,
             time=datetime.now(),
         )

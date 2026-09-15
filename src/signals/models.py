@@ -9,6 +9,5 @@ class Signal:
     uv: int
     temperature: int
     soil_moisture: int
-    touch: bool
     state: str
     time: datetime

@@ -5,7 +5,7 @@ from .models import Signal
 
 
 class SignalRepository:
-    """Provides access to stored environmental and interaction signals."""
+    """Provides access to stored environmental signals."""
 
     def save(self, signal: Signal) -> None:
         """Store a signal in the database."""
@@ -18,17 +18,15 @@ class SignalRepository:
                 uv,
                 temperature,
                 soil_moisture,
-                touch,
                 state,
                 time
             )
-            VALUES (?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?)
             """,
             (
                 signal.uv,
                 signal.temperature,
                 signal.soil_moisture,
-                signal.touch,
                 signal.state,
                 signal.time,
             ),
@@ -44,7 +42,7 @@ class SignalRepository:
 
         row = connection.execute(
             """
-            SELECT uv, temperature, soil_moisture, touch, state, time
+            SELECT uv, temperature, soil_moisture, state, time
             FROM signals
             ORDER BY id DESC
             LIMIT 1
@@ -60,23 +58,23 @@ class SignalRepository:
             uv=row[0],
             temperature=row[1],
             soil_moisture=row[2],
-            touch=bool(row[3]),
-            state=row[4],
-            time=datetime.fromisoformat(row[5]),
+            state=row[3],
+            time=datetime.fromisoformat(row[4]),
         )
 
     def get_recent(self, limit: int = 10) -> list[Signal]:
         """Return the most recently stored signals."""
+
         connection = get_connection()
 
         rows = connection.execute(
             """
-            SELECT uv, temperature, soil_moisture, touch, state, time
+            SELECT uv, temperature, soil_moisture, state, time
             FROM signals
             ORDER BY id DESC
             LIMIT ?
             """,
-           (limit,),
+            (limit,),
         ).fetchall()
 
         connection.close()
@@ -86,9 +84,8 @@ class SignalRepository:
                 uv=row[0],
                 temperature=row[1],
                 soil_moisture=row[2],
-                touch=bool(row[3]),
-                state=row[4],
-                time=datetime.fromisoformat(row[5]),
+                state=row[3],
+                time=datetime.fromisoformat(row[4]),
             )
-        for row in rows
+            for row in rows
         ]

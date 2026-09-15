@@ -18,35 +18,37 @@ simulator = EnvironmentSimulator(repository)
 st.title("🌳 Agent Birke")
 st.header("Umweltsimulation")
 
+uv_config = simulation_config["uv"]
+
 uv = st.slider(
     "UV-Index",
-    min_value=0,
-    max_value=15,
-    value=3
+    min_value=uv_config["min"],
+    max_value=uv_config["max"],
+    value=uv_config["default"]
 )
 
-temperature = st.slider(
+temperature_config = simulation_config["temperature"]
+
+uv = st.slider(
     "Temperatur (°C)",
-    min_value=-20,
-    max_value=45,
-    value=20,
+    min_value=uv_config["min"],
+    max_value=uv_config["max"],
+    value=uv_config["default"]
 )
 
+soil_moisture_config = simulation_config["soil_moisture"]
 soil_moisture = st.slider(
     "Bodenfeuchtigkeit (%)",
-    min_value=0,
-    max_value=100,
-    value=70,
+    min_value=soil_moisture_config["min"],
+    max_value=soil_moisture_config["max"],
+    value=soil_moisture_config["default"],
 )
-
-touch = st.checkbox("Berührung simulieren")
 
 # Save Button
 if st.button("Absenden"):
     simulator.set_uv(uv)
     simulator.set_temperature(temperature)
     simulator.set_soil_moisture(soil_moisture)
-    simulator.set_touch(touch)
     simulator.save_state("test")
     st.success("Zustand gespeichert.")
 
@@ -56,9 +58,8 @@ st.subheader("Aktuelle Werte")
 col1, col2 = st.columns(2)
 
 with col1:
-    st.metric("UV", f"{uv} W/m²")
+    st.metric("UV-Index", f"{uv}")
     st.metric("Temperatur", f"{temperature} °C")
 
 with col2:
     st.metric("Bodenfeuchtigkeit", f"{soil_moisture} %")
-    st.metric("Berührung", "Ja" if touch else "Nein")

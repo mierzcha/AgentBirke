@@ -19,16 +19,15 @@ def init_database():
     connection = get_connection()
 
     connection.execute("""
-        CREATE TABLE IF NOT EXISTS signals (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            uv INTEGER,
-            temperature INTEGER,
-            soil_moisture INTEGER,
-            touch BOOLEAN,
-            state TEXT,
-            time DATETIME
-        )
-    """)
+	    CREATE TABLE IF NOT EXISTS signals (
+		        id INTEGER PRIMARY KEY AUTOINCREMENT,
+		        uv INTEGER,
+		        temperature INTEGER,
+		        soil_moisture INTEGER,
+		        state TEXT,
+		        time DATETIME
+		    )
+		""")
 
     connection.commit()
     connection.close()
