@@ -19,6 +19,10 @@ openwebui-env/
 *.sqlite
 *.sqlite3
 
+# Knowledge
+!data/knowledge/birkenwissen/.gitkeep
+data/knowledge/birkenwissen/*
+
 # Logs
 *.log
 
