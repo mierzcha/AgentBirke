@@ -10,7 +10,6 @@ def main():
         uv=5,
         temperature=30,
         soil_moisture=30,
-        touch=True,
     )
 
     context = AgentContext(
@@ -24,6 +23,7 @@ def main():
     prompt = builder.build(
         user_input="Wie geht es dir?",
         context=context,
+        dialog_history=[],
     )
 
     print("Generierter Prompt:")
@@ -31,11 +31,10 @@ def main():
     print(prompt)
     print("--------------------------------")
 
-    assert "Too_Hot" in prompt
-    assert "Thirsty" in prompt
+    assert "Es ist gerade zu heiß für dich." in prompt
+    assert "Du bist gerade durstig. Du möchtest gegossen werden." in prompt
     assert "30 °C" in prompt
     assert "30 %" in prompt
-    assert "Berührungssensor ist aktiviert" in prompt
     assert "Wie geht es dir?" in prompt
 
     print("PromptBuilder funktioniert.")

@@ -5,7 +5,7 @@ from src.rules.evaluator import RuleEvaluator
 from src.signals.repository import SignalRepository
 from src.simulation.events import EnvironmentState
 from src.dialog.prompt_builder import PromptBuilder
-from src.llm.client import OllamaClient
+from src.llm.open_webui_client import OpenWebUIClient
 from src.tts.piper_client import PiperClient
 from src.stt.whisper_client import WhisperClient
 
@@ -18,14 +18,14 @@ class DialogService:
         repository: SignalRepository,
         rule_evaluator: RuleEvaluator,
         prompt_builder: PromptBuilder,
-        ollama_client: OllamaClient,
+        open_webui_client: OpenWebUIClient,
         piper_client: PiperClient,
         whisper_client: WhisperClient,
     ):
         self.repository = repository
         self.rule_evaluator = rule_evaluator
         self.prompt_builder = prompt_builder
-        self.ollama_client = ollama_client
+        self.open_webui_client = open_webui_client
         self.piper_client = piper_client
         self.whisper_client = whisper_client
 
@@ -40,14 +40,12 @@ class DialogService:
                 uv=3,
                 temperature=20,
                 soil_moisture=50,
-                touch=False,
             )
 
         return EnvironmentState(
             uv=signal.uv,
             temperature=signal.temperature,
             soil_moisture=signal.soil_moisture,
-            touch=signal.touch,
         )
 
     def create_agent_context(self, dialog_state):
@@ -87,7 +85,7 @@ class DialogService:
             dialog_history=dialog_history,
         )
 
-        answer = self.ollama_client.generate(
+        answer = self.open_webui_client.generate(
             prompt
         )
 

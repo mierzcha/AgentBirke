@@ -2,7 +2,7 @@ import streamlit as st
 
 from src.dialog.state_machine import DialogStateMachine
 from src.dialog.prompt_builder import PromptBuilder
-from src.llm.client import OllamaClient
+from src.llm.open_webui_client import OpenWebUIClient
 from src.rules.evaluator import RuleEvaluator
 from src.signals.repository import SignalRepository
 from src.dialog.logger import DialogueLogger
@@ -53,10 +53,10 @@ def create_prompt_builder() -> PromptBuilder:
 
 
 @st.cache_resource
-def create_ollama_client() -> OllamaClient:
-    """Create the Ollama client."""
+def create_open_webui_client() -> OpenWebUIClient:
+    """Create the Open WebUI client."""
 
-    return OllamaClient()
+    return OpenWebUIClient()
 
 
 @st.cache_resource
