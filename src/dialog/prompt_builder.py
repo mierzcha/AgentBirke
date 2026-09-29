@@ -1,39 +1,37 @@
+import json
+from pathlib import Path
 from src.agent.context import AgentContext
 
+CONFIG_PATH = Path("config/rules.json")
 
 class PromptBuilder:
-    """
-    Builds the prompt that is sent to the language model.
-    """
+    """Builds the prompt that is sent to the language model."""
 
-    def build(
-        self,
-        user_input: str,
-        context: AgentContext,
-        dialog_history: list[dict[str, str]],
-    ) -> str:
-        """
-        Build a complete prompt for the language model.
+    def __init__(self, config_path: Path = CONFIG_PATH):
+        """Load condition descriptions from the JSON configuration file."""
+        self.rules = self._load_rules(config_path)
 
-        Parameters:
-            user_input:
-                The current input provided by the user.
+    def _load_rules(self, config_path: Path) -> dict:
+        """Load the rules from a JSON configuration file."""
+        with open(config_path, "r", encoding="utf-8") as file:
+            return json.load(file)
 
-            context:
-                The current AgentContext containing the dialogue state,
-                environmental values, and evaluated environmental
-                conditions.
+    def _build_condition_description(self, conditions: list[str]) -> str:
+        """Build a description from the currently active conditions."""
+        configured_conditions = self.rules["conditions"]
+        descriptions = []
+        for condition_label in conditions:
+            for condition in configured_conditions.values():
+                if condition["label"] == condition_label:
+                    descriptions.append(condition["description"])
+                    break
+        if not descriptions:
+            return ""
+        return " ".join(descriptions)
 
-            dialog_history:
-                A list containing previous messages from the dialogue.
-                Each message contains a speaker and the corresponding text.
-
-        Returns:
-            A formatted prompt string that can be sent to the LLM.
-        """
-
+    def build(self,user_input: str, context: AgentContext, dialog_history: list[dict[str, str]]) -> str:
+        """Build a complete prompt for the language model."""
         if context.dialog_state.value == "Greeting":
-
             task_description = """
 Der Nutzer hat die Interaktion begonnen und ein neues Gespräch
 beginnt.
@@ -46,9 +44,7 @@ inhaltliche Frage.
 
 Verwende den bisherigen Gesprächsverlauf nicht für die Begrüßung.
 """
-
         elif context.dialog_state.value == "Dialogue_active":
-
             task_description = """
 Das Gespräch mit dem Nutzer ist bereits aktiv.
 
@@ -58,13 +54,13 @@ Begrüße den Nutzer NICHT erneut.
 Beginne deine Antwort NICHT mit "Hallo" oder einer anderen
 Begrüßung.
 
-Lasse die Angabe, aus welcher Wissensbasis dein Wissen stammt (wie etwa "[1]") weg.
+Lasse die Angabe, aus welcher Wissensbasis dein Wissen stammt
+(wie etwa "[1]") weg.
 
 Berücksichtige den bisherigen Gesprächsverlauf. Informationen,
 die der Nutzer im bisherigen Gespräch genannt hat, dürfen in
 späteren Antworten verwendet werden.
 """
-
         elif context.dialog_state.value == "Goodbye":
             task_description = """
 Das Gespräch mit dem Nutzer wird beendet.
@@ -73,46 +69,22 @@ Verabschiede dich freundlich und kurz vom Nutzer.
 
 Beginne kein neues Gesprächsthema und stelle keine weitere Frage.
 """
-
         else:
-
-            # Fallback
             task_description = """
 Es findet aktuell kein aktives Gespräch statt.
 
 Antworte nur, wenn eine Antwort in diesem Zustand erforderlich ist.
 """
-        if "Happy" in context.conditions:
-
-            condition_description = ("Die Umweltbedingungen sind aktuell unauffällig.")
-
-        else:
-            condition_description = ""
-            if "Too_Hot" in context.conditions:
-                condition_description += ("Es ist gerade zu heiß für dich. ")
-            if "Too_Cold" in context.conditions:
-                condition_description += ("Es ist gerade zu kalt für dich. ")
-            if "Too_Dark" in context.conditions:
-                condition_description += ("Es ist gerade zu dunkel für dich. ")
-            if "Too_Bright" in context.conditions:
-                condition_description += ("Es ist gerade zu hell für dich. ")
-            if "Thirsty" in context.conditions:
-                condition_description += ("Du bist gerade durstig. Du möchtest gegossen werden. ")
-            if "Drowning" in context.conditions:
-                condition_description += ("In deiner Erde ist gerade zu viel Wasser. Du brauchst eine Pause vom Gießen. ")
-
+        condition_description = self._build_condition_description(context.conditions)
         conversation = ""
-
         for message in dialog_history:
-
             conversation += (
                 f"{message['speaker']}: {message['text']}\n"
             )
-
         if not conversation:
-
             conversation = "Noch kein bisheriger Gesprächsverlauf."
-
+            
+        # Building the full prompt
         prompt = f"""
 Du bist Agent Birke, eine freundliche künstliche Birke.
 

@@ -1,14 +1,50 @@
 {
-    "soil_moisture": {
-        "thirsty_below": 40,
-        "drowning_above": 70
-    },
-    "temperature": {
-        "too_cold_below": 15,
-        "too_hot_above": 25
-    },
-    "uv": {
-        "too_dark_below": 2,
-        "too_bright_above": 6
+    "conditions": {
+        "thirsty": {
+            "label": "Thirsty",
+            "variable": "soil_moisture",
+            "op": "<",
+            "threshold": 40,
+            "description": "Du bist gerade durstig. Du möchtest gegossen werden."
+        },
+        "drowning": {
+            "label": "Drowning",
+            "variable": "soil_moisture",
+            "op": ">",
+            "threshold": 70,
+            "description": "In deiner Erde ist gerade zu viel Wasser. Du brauchst eine Pause vom Gießen."
+        },
+        "too_cold":{
+            "label": "Too_Cold",
+            "variable": "temperature",
+            "op": "<",
+            "threshold": 15,
+            "description": "Es ist gerade zu kalt für dich."
+        },
+        "too_hot":{
+            "label": "Too_Hot",
+            "variable": "temperature",
+            "op": ">",
+            "threshold": 33,
+            "description": "Es ist gerade zu heiß für dich."
+        },
+        "too_dark":{
+            "label": "Too_Dark",
+            "variable": "uv",
+            "op": "<",
+            "threshold": 2,
+            "description": "Es ist gerade zu dunkel für dich."
+        },
+        "too_bright":{
+            "label": "Too_Bright",
+            "variable": "uv",
+            "op": ">",
+            "threshold": 6,
+            "description": "Es ist gerade zu hell für dich."
+        },
+        "happy":{
+            "label": "Happy",
+            "description": "Die Umweltbedingungen sind aktuell genau richtig für dich."
+        }
     }
 }
