@@ -62,8 +62,12 @@ class PromptBuilder:
         task_description = self._get_task_description(context.dialog_state.value)
         environment_template = self.prompts["environment_template"].format(context=context)
         input_label = self.prompts["input_label"].format(user_input=user_input)
+        role= self.prompts["role"].format(
+            agent_name=self.prompts["agent_name"]
+        )
         prompt = self.prompts["layout"].format(
-            role=self.prompts["role"],
+            agent_name=self.prompts["agent_name"],
+            role=role,
             environment_template=environment_template,
             condition_description=condition_description,
             engagement_description=engagement_description,
