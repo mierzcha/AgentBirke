@@ -7,13 +7,14 @@ from src.dialog.service import DialogService
 # Helper functions
 from src.ui.dialog_components import (
     initialize_session_state,
+    create_hci_config,
     create_repository,
     create_rule_evaluator,
     create_prompt_builder,
     create_open_webui_client,
     create_dialogue_logger,
     create_piper_client,
-    create_whisper_client,
+    create_whisper_client
 )
 
 # How long does the dialogue history show, after goodbye is initiated
@@ -27,7 +28,8 @@ st.title("🌳 Agent Birke")
 st.header("Dialogsystem")
 
 # Initialize session state and components
-initialize_session_state()
+hci_config = create_hci_config()
+initialize_session_state(hci_config)
 state_machine = st.session_state.state_machine
 repository = create_repository()
 rule_evaluator = create_rule_evaluator()
@@ -43,6 +45,7 @@ dialog_service = DialogService(
     open_webui_client=open_webui_client,
     piper_client=piper_client,
     whisper_client=whisper_client,
+    hci_config=hci_config
 )
 def add_to_history(speaker: str, text: str)-> None:
     """Add one message to the conversation history."""
@@ -51,10 +54,10 @@ def add_to_history(speaker: str, text: str)-> None:
 def generate_agent_response(user_input: str) -> str:
     """Generate an agent response and store its result."""
     with st.spinner("🌱 Birke denkt nach..."):
-        (answer, audio_path, processing_time, prompt) = dialog_service.generate_response(        
-            user_input=user_input,
-            dialog_state=state_machine.state,
-            dialog_history=st.session_state.dialog_history)
+        (answer, audio_path, processing_time, prompt, engagement) = dialog_service.generate_response(
+            user_input=user_input, dialog_state=state_machine.state, dialog_history=st.session_state.dialog_history, engagement=st.session_state.engagement
+        )
+    st.session_state.engagement = engagement
     st.session_state.last_answer = answer
     st.session_state.last_audio_path = audio_path
     st.session_state.last_processing_time = processing_time
@@ -218,6 +221,7 @@ def show_developer_view() -> None:
     """Display the developer information."""
     st.subheader("Entwickleransicht")
     st.write(f"Aktueller Zustand: `{state_machine.state.value}`")
+    st.write(f"**Engagement:** {st.session_state.engagement} / 100")
     if state_machine.history:
         with st.expander("**Bisherige Zustandsübergänge:**"):
             for transition in state_machine.history:

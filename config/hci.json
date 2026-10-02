@@ -1,0 +1,19 @@
+{
+    "hci": {
+        "engagement": {
+            "default": 70,
+            "min": 0,
+            "max": 100
+        },
+        "rules": [
+            {
+                "event": "conversation_turn",
+                "change": -10
+            },
+            {
+                "event": "user_repeats_question",
+                "change": -20
+            }
+        ]
+    }
+}
