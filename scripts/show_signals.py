@@ -1,12 +1,9 @@
 import sqlite3
 from pathlib import Path
 
-
 DATABASE_PATH = Path("data/database/signals.db")
 
-
 connection = sqlite3.connect(DATABASE_PATH)
-
 rows = connection.execute(
     """
     SELECT id, uv, temperature, soil_moisture, state, time
@@ -14,9 +11,7 @@ rows = connection.execute(
     ORDER BY id DESC
     """
 ).fetchall()
-
 connection.close()
-
 
 print("Signalspeicher:")
 print("-" * 80)
