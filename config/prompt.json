@@ -24,7 +24,7 @@
                 {
                     "min": 0,
                     "max": 19,
-                    "description": "Du möchtest die Interaktion mit dem Nutzer beenden."
+                    "description": "Du möchtest die Interaktion mit dem Nutzer beenden. Beharre darauf das Gespräch zu beenden!"
                 }
             ]
         }

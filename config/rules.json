@@ -44,7 +44,7 @@
         },
         "happy":{
             "label": "Happy",
-            "description": "Die Umweltbedingungen sind aktuell genau richtig für dich."
+            "description": "Die Umweltbedingungen sind aktuell genau richtig für dich. Es ist weder zu hell noch zu dunkel. Die Temperatur ist angenehm. Du bist nicht durstig und es ist nicht zu viel Wasser in deiner Erde."
         }
     }
 }

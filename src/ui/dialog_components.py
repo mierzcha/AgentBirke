@@ -11,6 +11,7 @@ import json
 from pathlib import Path
 
 HCI_CONFIG_PATH = Path("config/hci.json")
+LOGGING_CONFIG_PATH = Path("config/logging.json")
 
 def initialize_session_state(hci_config: dict) -> None:
     """Initialize the session state of the dialog application."""
@@ -18,11 +19,16 @@ def initialize_session_state(hci_config: dict) -> None:
     defaults = {
         "state_machine": DialogStateMachine(),
         "dialog_history": [],
+        "interactions": [],
         "last_prompt": None,
         "last_answer": None,
         "goodbye_done": False,
         "history_clear_at": None,
         "last_processing_time": None,
+        "last_prompt_building_time": None,
+        "last_llm_response_time": None,
+        "last_tts_time": None,
+        "last_context": None,
         "last_audio_path": None,
         "last_audio_id": None,
         "engagement": engagement_config["default"]
@@ -35,6 +41,12 @@ def initialize_session_state(hci_config: dict) -> None:
 def create_hci_config() -> dict:
     """Load the declarative HCI configuration."""
     with open(HCI_CONFIG_PATH, "r", encoding="utf-8") as file:
+        return json.load(file)
+        
+@st.cache_resource
+def create_logging_config() -> dict:
+    """Load the declarative logging configuration."""
+    with open(LOGGING_CONFIG_PATH , "r", encoding="utf-8") as file:
         return json.load(file)
         
 @st.cache_resource
@@ -58,9 +70,9 @@ def create_open_webui_client() -> OpenWebUIClient:
     return OpenWebUIClient()
 
 @st.cache_resource
-def create_dialogue_logger() -> DialogueLogger:
+def create_dialogue_logger(logging_config: dict) -> DialogueLogger:
     """Create the dialogue logger."""
-    return DialogueLogger()
+    return DialogueLogger(logging_config=logging_config)
 
 @st.cache_resource
 def create_piper_client() -> PiperClient:

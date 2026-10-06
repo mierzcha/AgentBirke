@@ -1,0 +1,37 @@
+{
+    "dialogue_logging": {
+        "directory": "data/logs/dialogues",
+        "file_prefix": "dialogue",
+
+        "sections": {
+            "dialog_state": {
+                "enabled": false,
+                "title": "Dialog-State"
+            },
+            "hci": {
+                "enabled": true,
+                "title": "HCI"
+            },
+            "environment": {
+                "enabled": false,
+                "title": "Environment / Signalspeicher"
+            },
+            "conditions": {
+                "enabled": false,
+                "title": "Conditions / Prompt-Definitionen"
+            },
+            "timings": {
+                "enabled": true,
+                "title": "Zeiten"
+            },
+            "prompt": {
+                "enabled": false,
+                "title": "Prompt"
+            },
+            "dialog": {
+                "enabled": true,
+                "title": "Dialog"
+            }
+        }
+    }
+}

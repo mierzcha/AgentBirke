@@ -5,9 +5,9 @@ from src.signals.repository import SignalRepository
 def main():
     repository = SignalRepository()
     signal = Signal(
-        uv=50,
+        uv=2,
         temperature=22,
-        soil_moisture=70,
+        soil_moisture=50,
         state="active_dialog",
         time=datetime.now(),
     )

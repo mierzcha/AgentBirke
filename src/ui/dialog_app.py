@@ -3,6 +3,7 @@ import streamlit as st
 from src.dialog.state_machine import DialogStateMachine
 from src.dialog.states import DialogState
 from src.dialog.service import DialogService
+from src.dialog.logger import InteractionSnapshot
 
 # Helper functions
 from src.ui.dialog_components import (
@@ -12,18 +13,16 @@ from src.ui.dialog_components import (
     create_rule_evaluator,
     create_prompt_builder,
     create_open_webui_client,
+    create_logging_config,
     create_dialogue_logger,
     create_piper_client,
     create_whisper_client
 )
 
 # How long does the dialogue history show, after goodbye is initiated
-DIALOG_HISTORY_DISPLAY_TIME = 15
+DIALOG_HISTORY_DISPLAY_TIME = 15 # TODO in config
 
-st.set_page_config(
-    page_title="Agent Birke - Dialog",
-    page_icon="🌳",
-)
+st.set_page_config(page_title="Agent Birke - Dialog", page_icon="🌳")
 st.title("🌳 Agent Birke")
 st.header("Dialogsystem")
 
@@ -35,7 +34,8 @@ repository = create_repository()
 rule_evaluator = create_rule_evaluator()
 prompt_builder = create_prompt_builder()
 open_webui_client = create_open_webui_client()
-dialogue_logger = create_dialogue_logger()
+logging_config = create_logging_config()
+dialogue_logger = create_dialogue_logger(logging_config)
 piper_client = create_piper_client()
 whisper_client = create_whisper_client()
 dialog_service = DialogService(
@@ -54,14 +54,29 @@ def add_to_history(speaker: str, text: str)-> None:
 def generate_agent_response(user_input: str) -> str:
     """Generate an agent response and store its result."""
     with st.spinner("🌱 Birke denkt nach..."):
-        (answer, audio_path, processing_time, prompt, engagement) = dialog_service.generate_response(
-            user_input=user_input, dialog_state=state_machine.state, dialog_history=st.session_state.dialog_history, engagement=st.session_state.engagement
+        (
+            answer, audio_path, prompt_building_time, llm_response_time, tts_time, 
+            processing_time, prompt, engagement, context
+        ) = dialog_service.generate_response(
+                user_input=user_input, dialog_state=state_machine.state, 
+                dialog_history=st.session_state.dialog_history, 
+                engagement=st.session_state.engagement
         )
     st.session_state.engagement = engagement
     st.session_state.last_answer = answer
     st.session_state.last_audio_path = audio_path
     st.session_state.last_processing_time = processing_time
+    st.session_state.last_prompt_building_time = prompt_building_time
+    st.session_state.last_llm_response_time = llm_response_time
+    st.session_state.last_tts_time = tts_time
     st.session_state.last_prompt = prompt
+    st.session_state.last_context = context
+    snapshot = InteractionSnapshot( # Snapshot for the Logger
+        dialog_state=state_machine.state, engagement=engagement, context=context, prompt=prompt, 
+        answer=answer, prompt_building_time=prompt_building_time, llm_response_time=llm_response_time, 
+        tts_time=tts_time, processing_time=processing_time, user_input=user_input
+    ) 
+    st.session_state.interactions.append(snapshot)
     return answer
 
 def process_input(user_input: str) -> None:
@@ -89,11 +104,7 @@ def process_audio_input(audio_input) -> None:
 def show_audio_output() -> None:
     """Display the latest generated speech output."""
     if st.session_state.last_audio_path is not None:
-        st.audio(
-            st.session_state.last_audio_path,
-            format="audio/wav",
-            autoplay=True,
-        )
+        st.audio(st.session_state.last_audio_path, format="audio/wav", autoplay=True)
 
 def show_current_state() -> None:
     """Display the current dialogue state."""
@@ -108,7 +119,7 @@ def show_state_machine() -> None:
         DialogState.IDLE,
         DialogState.GREETING,
         DialogState.DIALOGUE_ACTIVE,
-        DialogState.GOODBYE,
+        DialogState.GOODBYE
     ]
     columns = st.columns(4)
     for column, state in zip(columns, states):
@@ -163,8 +174,8 @@ def show_text_and_voice_input(text_key: str, audio_key: str) -> None:
     """Display text and voice input controls."""
     user_input = st.text_input("Texteingabe", key=text_key)
     submitted = st.button("Eingabe senden", key=f"{text_key}_button")
-    audio_input = st.audio_input("Oder sprich mit der Birke",
-        sample_rate=16000, key=audio_key)
+    audio_input = st.audio_input("Oder sprich mit der Birke", sample_rate=16000, 
+        key=audio_key)
     if submitted and user_input.strip():
         process_input(user_input)
     if audio_input is not None:
@@ -192,7 +203,9 @@ def handle_goodbye() -> None:
     if not st.session_state.goodbye_done:
         answer = generate_agent_response("")
         add_to_history("Birke", answer)
-        dialogue_logger.save_dialogue(st.session_state.dialog_history)
+        # Logger receives dialog history and all snapshots with
+        # runtimes, environment-, hci, and dialog-states
+        dialogue_logger.save_dialogue(st.session_state.dialog_history, st.session_state.interactions) 
         st.session_state.goodbye_done = True
         state_machine.handle_event("goodbye_finished")
         st.session_state.history_clear_at = (time.time() + DIALOG_HISTORY_DISPLAY_TIME)
@@ -206,6 +219,7 @@ def clear_old_dialogue_history() -> None:
         return
     if time.time() >= st.session_state.history_clear_at:
         st.session_state.dialog_history = []
+        st.session_state.interactions = []
         st.session_state.last_prompt = None
         st.session_state.last_answer = None
         st.session_state.last_audio_path = None
@@ -215,7 +229,6 @@ def clear_old_dialogue_history() -> None:
     else:
         time.sleep(0.5)
         st.rerun()
-
 
 def show_developer_view() -> None:
     """Display the developer information."""
@@ -238,9 +251,12 @@ def show_developer_view() -> None:
     st.write("`Dialogue_active` — **speech** → `Dialogue_active`")
     st.write("`Dialogue_active` — **release** → `Goodbye`")
     st.write("`Goodbye` — **goodbye_finished** → `Idle`")
-    if (st.session_state.last_processing_time is not None):
-        st.write(f"Bearbeitungszeit: "
-        f"{st.session_state.last_processing_time:.2f} Sekunden")
+    if (st.session_state.last_processing_time is not None): #TODO andere not none
+        st.write(f"Bearbeitungszeit: {st.session_state.last_processing_time:.2f} Sekunden")
+        st.write(f"Prompt-Erstellung: {st.session_state.last_prompt_building_time:.4f} Sekunden")
+        st.write(f"LLM-Antwort: {st.session_state.last_llm_response_time:.2f} Sekunden")
+        st.write(f"Piper-Audio: {st.session_state.last_tts_time:.2f} Sekunden")
+        st.write(f"Gesamt: {st.session_state.last_processing_time:.2f} Sekunden")
     if st.session_state.last_prompt:
         with st.expander("Prompt anzeigen"):
             st.text(st.session_state.last_prompt)
