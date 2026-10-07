@@ -1,0 +1,15 @@
+{
+    "led": {
+        "count": 24,
+        "effects": {
+            "touch": {
+                "enabled": true,
+                "file": "touch.csv"
+            },
+            "audio_pulse": {
+                "enabled": true,
+                "file": "audio_pulse.csv"
+            }
+        }
+    }
+}

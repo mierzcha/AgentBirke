@@ -4,11 +4,15 @@ from src.dialog.state_machine import DialogStateMachine
 from src.dialog.states import DialogState
 from src.dialog.service import DialogService
 from src.dialog.logger import InteractionSnapshot
-
+from src.ui.dialog_components import render_led_ring
 # Helper functions
 from src.ui.dialog_components import (
     initialize_session_state,
     create_hci_config,
+    create_led_config,
+    create_led_controller,
+    render_led_ring,
+    render_led_animation,
     create_repository,
     create_rule_evaluator,
     create_prompt_builder,
@@ -21,14 +25,15 @@ from src.ui.dialog_components import (
 
 # How long does the dialogue history show, after goodbye is initiated
 DIALOG_HISTORY_DISPLAY_TIME = 15 # TODO in config
-
 st.set_page_config(page_title="Agent Birke - Dialog", page_icon="🌳")
 st.title("🌳 Agent Birke")
 st.header("Dialogsystem")
-
 # Initialize session state and components
 hci_config = create_hci_config()
 initialize_session_state(hci_config)
+led_config = create_led_config()
+led_controller = create_led_controller(led_config=led_config, hci_config=hci_config)
+engagement_leds = [led_controller.get_engagement_color(st.session_state.engagement)] * led_controller.led_count
 state_machine = st.session_state.state_machine
 repository = create_repository()
 rule_evaluator = create_rule_evaluator()
@@ -39,12 +44,8 @@ dialogue_logger = create_dialogue_logger(logging_config)
 piper_client = create_piper_client()
 whisper_client = create_whisper_client()
 dialog_service = DialogService(
-    repository=repository,
-    rule_evaluator=rule_evaluator,
-    prompt_builder=prompt_builder,
-    open_webui_client=open_webui_client,
-    piper_client=piper_client,
-    whisper_client=whisper_client,
+    repository=repository, rule_evaluator=rule_evaluator, prompt_builder=prompt_builder, 
+    open_webui_client=open_webui_client, piper_client=piper_client, whisper_client=whisper_client, 
     hci_config=hci_config
 )
 def add_to_history(speaker: str, text: str)-> None:
@@ -55,7 +56,7 @@ def generate_agent_response(user_input: str) -> str:
     """Generate an agent response and store its result."""
     with st.spinner("🌱 Birke denkt nach..."):
         (
-            answer, audio_path, prompt_building_time, llm_response_time, tts_time, 
+        answer, audio_path, prompt_building_time, llm_response_time, tts_time, 
             processing_time, prompt, engagement, context
         ) = dialog_service.generate_response(
                 user_input=user_input, dialog_state=state_machine.state, 
@@ -147,6 +148,8 @@ def show_touch_control() -> None:
     if state_machine.state == DialogState.IDLE:
         if st.button("Birke berühren"):
             state_machine.handle_event("touch")
+            # LED Effekt bei touch 
+            st.session_state.show_touch_animation = True
             st.session_state.goodbye_done = False
             st.session_state.history_clear_at = None
             st.session_state.last_audio_id = None
@@ -261,11 +264,20 @@ def show_developer_view() -> None:
         with st.expander("Prompt anzeigen"):
             st.text(st.session_state.last_prompt)
 
+def show_leds() -> None:
+    if st.session_state.show_touch_animation:
+        touch_effect = led_controller.load_effect("touch")
+        render_led_animation(touch_effect.frames)
+        st.session_state.show_touch_animation = False
+    else:
+        render_led_ring(engagement_leds)
+
 # Display application
 show_audio_output()
 show_current_state()
 show_state_machine()
 show_environment()
+show_leds() 
 show_touch_control()
 show_dialogue_history()
 
