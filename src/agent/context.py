@@ -10,9 +10,6 @@ class AgentContext:
     conditions: list[str]
     engagement : int
     
-def create_context(
-    dialog_state: DialogState, environment: EnvironmentState, conditions: list[str], engagement : int
-) -> AgentContext:
+def create_context(dialog_state: DialogState, environment: EnvironmentState, conditions: list[str], engagement : int) -> AgentContext:
     """Create the current context of Agent Birke."""
-    return AgentContext(dialog_state=dialog_state, environment=environment, conditions=conditions, 
-        engagement=engagement)
+    return AgentContext(dialog_state=dialog_state, environment=environment, conditions=conditions, engagement=engagement)

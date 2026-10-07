@@ -1,17 +1,8 @@
 from src.tts.piper_client import PiperClient
 
-
-client = PiperClient(
-    model_path="models/piper/de_DE-ramona-low.onnx"
-)
-
-output_path = client.generate(
-    text="Hallo, ich bin Agent Birke.",
-    output_filename="test_piper_client1.wav",
-)
-
+client = PiperClient(model_path="models/piper/de_DE-ramona-low.onnx")
+output_path = client.generate(text="Hallo, ich bin Agent Birke.",output_filename="test_piper_client_output.wav",)
 print(f"Audio 1 gespeichert unter: {output_path}")
-
 output_path = client.generate(
     text="""Hallo zusammen,
 Leider gibt es immer noch ein paar Leute die auf Rechtschreibung scheißen. Wir haben heute einen ganz besonderen Lehrer, der diesen Leuten einen Crashkurs verpasst. Begrüßen wir ihn zusammen...
@@ -40,7 +31,6 @@ Frank... das ist ein kein Klo... man was soll dieses Theater!
 2x 
 Macklemore lehrt euch Kommentare zu schreiben, denn so wie es ist, kann es leider nicht bleiben. Egal ob ein Fan oder übelster Hater, achte auf Rechtschreibung und mach' keine Fehler.
     """,
-    output_filename="test_piper_client2.wav",
+    output_filename="test_piper_client_output2.wav",
 )
-
 print(f"Audio 2 gespeichert unter: {output_path}")
