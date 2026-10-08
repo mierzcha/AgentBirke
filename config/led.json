@@ -1,6 +1,11 @@
 {
     "led": {
         "count": 24,
+        "hci_scale": {
+            "enabled": true,
+            "file": "hci_scale.csv",
+            "default_scale": "default"
+        },
         "effects": {
             "touch": {
                 "enabled": true,
