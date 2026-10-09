@@ -9,10 +9,6 @@
             {
                 "event": "conversation_turn",
                 "change": -10
-            },
-            {
-                "event": "user_repeats_question",
-                "change": -20
             }
         ]
     }
