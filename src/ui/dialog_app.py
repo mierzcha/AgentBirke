@@ -4,27 +4,17 @@ from src.dialog.state_machine import DialogStateMachine
 from src.dialog.states import DialogState
 from src.dialog.service import DialogService
 from src.dialog.logger import InteractionSnapshot
-from src.ui.dialog_components import render_led_ring
+from src.actuation.event_dispatcher import EventDispatcher
+from src.actuation.led_actuator import LEDActuator
 # Helper functions
 from src.ui.dialog_components import (
-    initialize_session_state,
-    create_hci_config,
-    create_led_config,
-    create_led_controller,
-    render_led_ring,
-    render_led_animation,
-    create_repository,
-    create_rule_evaluator,
-    create_prompt_builder,
-    create_open_webui_client,
-    create_logging_config,
-    create_dialogue_logger,
-    create_piper_client,
-    create_whisper_client
+    initialize_session_state, create_hci_config, create_led_config, create_led_controller,
+    render_led_ring, render_led_animation, create_repository, create_rule_evaluator,
+    create_prompt_builder, create_open_webui_client, create_logging_config, create_dialogue_logger,
+    create_piper_client, create_whisper_client
 )
-
 # How long does the dialogue history show, after goodbye is initiated
-DIALOG_HISTORY_DISPLAY_TIME = 15 # TODO in config
+DIALOG_HISTORY_DISPLAY_TIME = 50 # TODO in config
 st.set_page_config(page_title="Agent Birke - Dialog", page_icon="🌳")
 st.title("🌳 Agent Birke")
 st.header("Dialogsystem")
@@ -32,8 +22,10 @@ st.header("Dialogsystem")
 hci_config = create_hci_config()
 initialize_session_state(hci_config)
 led_config = create_led_config()
-led_controller = create_led_controller(led_config=led_config, hci_config=hci_config)
-engagement_leds = [led_controller.get_engagement_color(st.session_state.engagement)] * led_controller.led_count
+led_controller = create_led_controller(led_config=led_config)
+led_actuator = LEDActuator(led_controller)
+dispatcher = EventDispatcher()
+dispatcher.register("led", led_actuator)
 state_machine = st.session_state.state_machine
 repository = create_repository()
 rule_evaluator = create_rule_evaluator()
@@ -149,7 +141,8 @@ def show_touch_control() -> None:
         if st.button("Birke berühren"):
             state_machine.handle_event("touch")
             # LED Effekt bei touch 
-            st.session_state.show_touch_animation = True
+            dispatcher.dispatch("led", "play_effect", effect_name="touch")
+            st.session_state.show_touch_animation = True # renders led effect on a mock led ring in the ui
             st.session_state.goodbye_done = False
             st.session_state.history_clear_at = None
             st.session_state.last_audio_id = None
@@ -230,7 +223,7 @@ def clear_old_dialogue_history() -> None:
         st.session_state.history_clear_at = None
         st.rerun()
     else:
-        time.sleep(0.5)
+        time.sleep(DIALOG_HISTORY_DISPLAY_TIME / 100)
         st.rerun()
 
 def show_developer_view() -> None:
@@ -265,12 +258,14 @@ def show_developer_view() -> None:
             st.text(st.session_state.last_prompt)
 
 def show_leds() -> None:
+    """Display mock led ring in the ui"""
     if st.session_state.show_touch_animation:
         touch_effect = led_controller.load_effect("touch")
         render_led_animation(touch_effect.frames)
         st.session_state.show_touch_animation = False
     else:
-        render_led_ring(engagement_leds)
+        default_leds = [(0, 0, 0)] * led_controller.led_count
+        render_led_ring(default_leds) #TODO put a default
 
 # Display application
 show_audio_output()

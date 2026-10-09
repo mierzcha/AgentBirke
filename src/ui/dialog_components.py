@@ -62,10 +62,10 @@ def create_led_config() -> dict:
         return json.load(file)
         
 @st.cache_resource
-def create_led_controller(led_config: dict, hci_config: dict) -> LedController:
+def create_led_controller(led_config: dict) -> LedController:
     """Create the LED controller."""
     output=MockLEDOutput()
-    return LedController(led_config=led_config,hci_config=hci_config,output=output)
+    return LedController(led_config=led_config,output=output)
         
 @st.cache_resource
 def create_repository() -> SignalRepository:
@@ -104,7 +104,7 @@ def create_whisper_client() -> WhisperClient:
 
 def render_led_ring(leds: list[tuple[int, int, int]], size: int = 300) -> None:
     """Render a static 24-LED ring."""
-    if len(leds) != 24:
+    if len(leds) != 24: #TODO get from led.json
         raise ValueError(f"Expected 24 LEDs, got {len(leds)}.")
 
     center = size / 2

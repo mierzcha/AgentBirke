@@ -21,31 +21,19 @@ class LEDEffect:
     """Contains all frames belonging to one LED effect."""
     name: str
     frames: list[LEDFrame]
-    
-@dataclass(frozen=True)
-class HCIColorPoint:
-    """Defines one color point of an HCI color scale."""
-    engagement: int
-    color: tuple[int, int, int]
 
 class LedController:
     """Controlls LED effects of Agent Birke. Colors of the LEDs are dependent on the hci value engagement"""
     # animation csv files have this format (one line per frame for animations)
     REQUIRED_COLUMNS = {"frame", "duration_ms", "led", "r", "g", "b"}
-    def __init__(self, led_config: dict, hci_config: dict, output: LEDOutput):
+    def __init__(self, led_config: dict, output: LEDOutput):
         self._stop_event = threading.Event()
         self._effect_thread = None
         self.led_config = led_config
-        self.hci_config = hci_config
         self.output = output
         led_settings = self.led_config["led"]
         self.led_count = led_settings["count"]
-        engagement_config = self.hci_config["hci"]["engagement"]
-        self.engagement_min = engagement_config["min"]
-        self.engagement_max = engagement_config["max"]
         self.effects_config = led_settings["effects"]
-        self.hci_scale_config = led_settings["hci_scale"]
-        self.hci_scales = self._load_hci_scales()
 
     def load_effect(self, effect_name: str) -> LEDEffect:
         """Load and validate an LED effect from its configured CSV file."""
@@ -103,44 +91,6 @@ class LedController:
                 raise ValueError(f"Frame {frame_number} in '{file_path}' is missing LED values for: {missing_leds}")
             frames.append(LEDFrame(frame=frame_number, duration_ms=duration_ms, leds=leds))
         return frames
-       
-    def _load_hci_scales(self) -> dict[str, list[HCIColorPoint]]:
-        """Load and validate all HCI color scales."""
-        if not self.hci_scale_config["enabled"]:
-            return {}
-        filename = self.hci_scale_config["file"]
-        file_path = LED_EFFECT_DIRECTORY / filename
-        if not file_path.exists():
-            raise FileNotFoundError(f"HCI scale file not found: {file_path}")
-        with open(file_path, "r", encoding="utf-8", newline="") as file:
-            reader = csv.DictReader(file)
-            if reader.fieldnames is None:
-                raise ValueError(f"HCI scale file '{file_path}' has no header.")
-            required_columns = {"scale", "engagement", "r", "g", "b"}
-            missing_columns = (required_columns - set(reader.fieldnames))
-            if missing_columns:
-                raise ValueError(f"HCI scale file '{file_path}' is missing columns: {sorted(missing_columns)}")
-            scales: dict[str, list[HCIColorPoint]] = {}
-            for row in reader:
-                scale_name = row["scale"].strip()
-                if not scale_name:
-                    raise ValueError(f"HCI scale file '{file_path}' contains an empty scale name.")
-                engagement = self._parse_int(row["engagement"],"engagement",file_path)
-                engagement = self.validate_engagement(engagement)
-                red = self._parse_rgb(row["r"],"r",file_path)
-                green = self._parse_rgb(row["g"],"g",file_path)
-                blue = self._parse_rgb(row["b"],"b",file_path)
-                scales.setdefault(scale_name,[]).append(HCIColorPoint(engagement=engagement,color=(red, green, blue)))
-            if not scales:
-                raise ValueError(f"HCI scale file '{file_path}' contains no data.")
-        for scale_name, points in scales.items():
-            points.sort(key=lambda point: point.engagement)
-            if len(points) < 2:
-                raise ValueError(f"HCI scale '{scale_name}' needs at least two color points.")
-            engagements = [point.engagement for point in points]
-            if len(engagements) != len(set(engagements)):
-                raise ValueError(f"HCI scale '{scale_name}' contains duplicate engagement values.")
-        return scales
 
     @staticmethod
     def _parse_int(value: str, field_name: str, file_path: Path) -> int:
@@ -171,45 +121,11 @@ class LedController:
             return False
         return self.effects_config[effect_name]["enabled"]
 
-    def validate_engagement(self, engagement: int) -> int:
-        """Validate and clamp an engagement value."""
-        return max(self.engagement_min, min(engagement, self.engagement_max))
-        
     def set_leds(self, leds: list[tuple[int, int, int]]) -> None:
         """Set the RGB values of all LEDs"""
         if len(leds) != self.led_count:
             raise ValueError(f"Expected {self.led_count} LEDs, got {len(leds)}.")
         self.output.set_leds(leds)
-
-    def set_engagement(self, engagement: int) -> None: 
-        """Set the LED color on a green to red scale according to the current engagement"""
-        color = self.get_engagement_color(engagement)
-        leds = [color] * self.led_count
-        self.set_leds(leds)
-        
-    def get_engagement_color(self, engagement: int, scale: str | None = None) -> tuple[int, int, int]:
-        """Return the RGB color for the given engagement."""
-        engagement = self.validate_engagement(engagement)
-        if not self.hci_scales:
-            raise ValueError("No HCI color scales are configured.")
-        if scale is None:
-            scale = self.hci_scale_config["default_scale"]
-        if scale not in self.hci_scales:
-            raise ValueError(f"HCI color scale '{scale}' is not configured.")
-        points = self.hci_scales[scale]
-        if engagement <= points[0].engagement:
-            return points[0].color
-        if engagement >= points[-1].engagement:
-            return points[-1].color
-        for first, second in zip(points, points[1:]):
-            if (first.engagement <= engagement <= second.engagement):
-                distance = (second.engagement - first.engagement)
-                position = (engagement - first.engagement) / distance
-                red = int(first.color[0] + (second.color[0] - first.color[0]) * position)
-                green = int(first.color[1] + (second.color[1] - first.color[1]) * position)
-                blue = int(first.color[2] + (second.color[2] - first.color[2]) * position)
-                return red, green, blue
-        raise ValueError(f"Could not determine color for engagement {engagement}.")
         
     def stop_effect(self) -> None:
         """Stop the currently running LED effect."""

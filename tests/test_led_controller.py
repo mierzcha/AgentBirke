@@ -14,17 +14,8 @@ def test_play_touch_effect():
         }
     }
 
-    hci_config = {
-        "hci": {
-            "engagement": {
-                "min": 0,
-                "max": 100
-            }
-        }
-    }
-
     output = MockLEDOutput()
-    controller = LedController(led_config=led_config, hci_config=hci_config, output=output)
+    controller = LedController(led_config=led_config, output=output)
     controller.play_effect("touch")
     
 if __name__ == "__main__":

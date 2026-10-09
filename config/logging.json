@@ -5,7 +5,7 @@
 
         "sections": {
             "dialog_state": {
-                "enabled": false,
+                "enabled": true,
                 "title": "Dialog-State"
             },
             "hci": {
@@ -13,11 +13,11 @@
                 "title": "HCI"
             },
             "environment": {
-                "enabled": false,
+                "enabled": true,
                 "title": "Environment / Signalspeicher"
             },
             "conditions": {
-                "enabled": false,
+                "enabled": true,
                 "title": "Conditions / Prompt-Definitionen"
             },
             "timings": {
@@ -25,7 +25,7 @@
                 "title": "Zeiten"
             },
             "prompt": {
-                "enabled": false,
+                "enabled": true,
                 "title": "Prompt"
             },
             "dialog": {
