@@ -50,7 +50,7 @@ For Microphone Access with http, you must use the localhost.
 
 Inside a local Powershell, run:
 ```bash
-ssh -L \<PORT\>:localhost:\<PORT\> \<USERNAME\>@dipa.th-brandenburg.de
+ssh -L <PORT>:localhost:<PORT> <USERNAME>@dipa.th-brandenburg.de
 ```
 
 PORT = port number, on which the streamlit application is running (see in other terminal)
@@ -60,7 +60,7 @@ and log in on the Dipa-Server.
 
 Leave this local powershell open.
 
-Open http://localhost:\<PORT\>/ in your browser.
+Open http://localhost:<PORT\>/ in your browser.
 
 ## Start Environment Simulation
 
