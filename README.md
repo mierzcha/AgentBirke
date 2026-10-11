@@ -1,7 +1,7 @@
 # AgentBirke
 
-Version 0 (WIP)
-TODO einheitlich englisch oder deutsch
+Version 1 (WIP)
+
 
 ## Create Virtual Environment
 
@@ -22,55 +22,56 @@ pip install piper-tts
 pip install faster-whisper
 ```
 
-## Signalspeicher initialisieren
+## Initialize Signals Database
 
-data/database/signals.db ist die Signalspeicher-Datenbank.
-Sie wird initialisiert mit:
+The database, holding the environment signals is src/data/database/signals.db.
 
+Initialize it with:
 ```bash
 PYTHONPATH=. python scripts/init_database.py
 ```
 
-## Open WebUI einrichten
+## Set up Open WebUI for RAG
+
+View "Kapitel 6.1 Einrichten von Open WebUI auf DIPA" for detailed instructions
+TODO: Number might change
 
 ```bash
-pip install pysqlite3-binary
 docker run -d -p 3000:8080 --add-host=host.docker.internal:host-gateway -v open-webui:/app/backend/data --name open-webui --restart always ghcr.io/open-webui/open-webui:main
 ```
 
-visit localhost:3000
-create an Administrator Account
-create an API Key
-write API Key in your own .env
-
-## Umweltsimulation starten
-
-```bash
-PYTHONPATH=. streamlit run src/ui/simulation_app.py
-```
-
-open the Network URL
-
-## Dialogsystem starten
+## Start Dialogue App
 
 ```bash
 PYTHONPATH=. streamlit run src/ui/dialog_app.py
 ```
 
-auf lokalem PC in Powershell ausführen:
+For Microphone Access with http, you must use the localhost.
+
+Inside a local Powershell, run:
 ```bash
-ssh -L \<PORT\>:localhost:\<PORT\> <USERNAME>@dipa.th-brandenburg.de
+ssh -L \<PORT\>:localhost:\<PORT\> \<USERNAME\>@dipa.th-brandenburg.de
 ```
-PORT = Portnummer, auf dem die Streamlit Anwendunng läuft
-USERNAME = Username auf dem Dipa-Server
 
-Terminal geöffnet lassen
+PORT = port number, on which the streamlit application is running (see in other terminal)
+USERNAME = Username on the Dipa-Server
 
-http://localhost:\<PORT\>/ im Browser aufrufen (Localhost für die Mikrofonberechtigung ohne https)
+and log in on the Dipa-Server.
+
+Leave this local powershell open.
+
+Open http://localhost:\<PORT\>/ in your browser.
+
+## Start Environment Simulation
+
+```bash
+PYTHONPATH=. streamlit run src/ui/simulation_app.py
+```
+
+Open the Network URL.
 
 ## Run Tests
 
-Ollama testen
 ```bash
 PYTHONPATH=. python tests/\<test-name\>
 ```
