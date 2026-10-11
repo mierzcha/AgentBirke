@@ -6,6 +6,20 @@ from src.simulation.simulator import EnvironmentSimulator
 
 CONFIG_PATH = Path("config/simulation.json")
 
+def read_latest_Values(repository: SignalRepository) -> tuple[float, float, float]:
+    """Read latest values from database."""
+    latest_signal = repository.get_latest()
+    if latest_signal is None:
+        uv_value = uv_config["default"]
+        temperature_value = temperature_config["default"]
+        soil_moisture_value = soil_moisture_config["default"]
+    else:
+        uv_value = latest_signal.uv
+        temperature_value = latest_signal.temperature
+        soil_moisture_value = latest_signal.soil_moisture
+        
+    return uv_value, temperature_value, soil_moisture_value  
+
 with open(CONFIG_PATH, "r", encoding="utf-8") as file:
     simulation_config = json.load(file)
 # Page configuration
@@ -20,16 +34,7 @@ st.header("Umweltsimulation")
 uv_config = simulation_config["uv"]
 temperature_config = simulation_config["temperature"]
 soil_moisture_config = simulation_config["soil_moisture"]
-# Read latest values from database
-latest_signal = repository.get_latest()
-if latest_signal is None:
-    uv_value = uv_config["default"]
-    temperature_value = temperature_config["default"]
-    soil_moisture_value = soil_moisture_config["default"]
-else:
-    uv_value = latest_signal.uv
-    temperature_value = latest_signal.temperature
-    soil_moisture_value = latest_signal.soil_moisture
+uv_value, temperature_value, soil_moisture_value = read_latest_Values(repository)
 # Environmental value sliders
 uv = st.slider("UV-Index",min_value=uv_config["min"],max_value=uv_config["max"],value=uv_value)
 temperature = st.slider("Temperatur (°C)",min_value=temperature_config["min"],max_value=temperature_config["max"],value=temperature_value)
@@ -42,10 +47,11 @@ if st.button("Absenden"):
     simulator.save_state("test")
     st.success("Zustand gespeichert.")
 # Current values
-st.subheader("Aktuelle Werte")
+st.subheader("Aktuelle Werte") 
 col1, col2 = st.columns(2)
+curr_uv, curr_temperature, curr_soil_moisture = read_latest_Values(repository)  
 with col1:
-    st.metric("UV-Index",uv)
-    st.metric("Temperatur",f"{temperature} °C")
+    st.metric("UV-Index",curr_uv)
+    st.metric("Temperatur",f"{curr_temperature} °C")
 with col2:
-    st.metric("Bodenfeuchtigkeit",f"{soil_moisture} %")
+    st.metric("Bodenfeuchtigkeit",f"{curr_soil_moisture} %")
