@@ -1,5 +1,6 @@
 import time
 import streamlit as st
+import wave #can read wav file's meta data, such as the duration of the audio track
 from src.dialog.state_machine import DialogStateMachine
 from src.dialog.states import DialogState
 from src.dialog.service import DialogService
@@ -14,7 +15,7 @@ from src.ui.dialog_components import (
     create_piper_client, create_whisper_client
 )
 # How long does the dialogue history show, after goodbye is initiated
-DIALOG_HISTORY_DISPLAY_TIME = 50 # TODO in config
+DIALOG_HISTORY_DISPLAY_TIME = 5 
 st.set_page_config(page_title="Agent Birke - Dialog", page_icon="🌳")
 st.title("🌳 Agent Birke")
 st.header("Dialogsystem")
@@ -141,7 +142,10 @@ def show_touch_control() -> None:
         if st.button("Birke berühren"):
             state_machine.handle_event("touch")
             # LED Effekt bei touch 
-            dispatcher.dispatch("led", "play_effect", effect_name="touch")
+            
+            # this is how the dispatcher would be called. Right now this can produce a Mock-Output on the console.
+            #dispatcher.dispatch("led", "play_effect", effect_name="touch")
+            
             st.session_state.show_touch_animation = True # renders led effect on a mock led ring in the ui
             st.session_state.goodbye_done = False
             st.session_state.history_clear_at = None
@@ -184,8 +188,7 @@ def handle_greeting() -> None:
         add_to_history("Birke", answer)
         st.rerun()
     st.write("Was möchtest du der Birke sagen?")
-    show_text_and_voice_input( text_key="greeting_text_input",
-        audio_key="greeting_audio")
+    show_text_and_voice_input( text_key="greeting_text_input", audio_key="greeting_audio")
 
 def handle_dialogue_active() -> None:
     """Handle the active dialogue state."""
@@ -202,9 +205,16 @@ def handle_goodbye() -> None:
         # Logger receives dialog history and all snapshots with
         # runtimes, environment-, hci, and dialog-states
         dialogue_logger.save_dialogue(st.session_state.dialog_history, st.session_state.interactions) 
+        with wave.open(str(st.session_state.last_audio_path), "rb") as audio_file:
+            audio_dur = audio_file.getnframes() / audio_file.getframerate()
+        end_time = time.time() + audio_dur + DIALOG_HISTORY_DISPLAY_TIME
+        st.session_state.history_clear_at = (end_time)
+        # Warten, bis die geschätzte Audiodauer erreicht ist
+        remaining = (audio_dur - time.time())
+        if remaining > 0:
+            time.sleep(remaining)
         st.session_state.goodbye_done = True
         state_machine.handle_event("goodbye_finished")
-        st.session_state.history_clear_at = (time.time() + DIALOG_HISTORY_DISPLAY_TIME)
         st.rerun()
 
 def clear_old_dialogue_history() -> None:
@@ -229,8 +239,14 @@ def clear_old_dialogue_history() -> None:
 def show_developer_view() -> None:
     """Display the developer information."""
     st.subheader("Entwickleransicht")
+    
+    # shows current State
     st.write(f"Aktueller Zustand: `{state_machine.state.value}`")
+    
+    # shows HCI Value
     st.write(f"**Engagement:** {st.session_state.engagement} / 100")
+    
+    # shows all transitions within the state machine in this conversation
     if state_machine.history:
         with st.expander("**Bisherige Zustandsübergänge:**"):
             for transition in state_machine.history:
@@ -247,12 +263,18 @@ def show_developer_view() -> None:
     st.write("`Dialogue_active` — **speech** → `Dialogue_active`")
     st.write("`Dialogue_active` — **release** → `Goodbye`")
     st.write("`Goodbye` — **goodbye_finished** → `Idle`")
-    if (st.session_state.last_processing_time is not None): #TODO andere not none
-        st.write(f"Bearbeitungszeit: {st.session_state.last_processing_time:.2f} Sekunden")
+    
+    # shows response times
+    if (st.session_state.last_prompt_building_time is not None): 
         st.write(f"Prompt-Erstellung: {st.session_state.last_prompt_building_time:.4f} Sekunden")
+    if (st.session_state.last_llm_response_time is not None): 
         st.write(f"LLM-Antwort: {st.session_state.last_llm_response_time:.2f} Sekunden")
+    if (st.session_state.last_tts_time is not None): 
         st.write(f"Piper-Audio: {st.session_state.last_tts_time:.2f} Sekunden")
+    if (st.session_state.last_processing_time is not None): 
         st.write(f"Gesamt: {st.session_state.last_processing_time:.2f} Sekunden")
+        
+    # shows latest Prompt
     if st.session_state.last_prompt:
         with st.expander("Prompt anzeigen"):
             st.text(st.session_state.last_prompt)
@@ -264,8 +286,8 @@ def show_leds() -> None:
         render_led_animation(touch_effect.frames)
         st.session_state.show_touch_animation = False
     else:
-        default_leds = [(0, 0, 0)] * led_controller.led_count
-        render_led_ring(default_leds) #TODO put a default
+        default_leds = [(0,0,0)] * led_controller.led_count
+        render_led_ring(default_leds) 
 
 # Display application
 show_audio_output()
