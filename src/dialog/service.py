@@ -7,6 +7,8 @@ from src.dialog.prompt_builder import PromptBuilder
 from src.llm.open_webui_client import OpenWebUIClient
 from src.tts.piper_client import PiperClient
 from src.stt.whisper_client import WhisperClient
+import json
+from pathlib import Path
 
 class DialogService:
     """Provides the core functions for processing a dialogue."""
@@ -27,8 +29,7 @@ class DialogService:
         """Read the latest environment state from the Signalspeicher."""
         signal = self.repository.get_latest()
         if signal is None:
-            return EnvironmentState(uv=3, temperature=20, soil_moisture=50) #TODO Werte aus config lesen
-
+            raise ValueError(f"latest Environment state not found. Check sensors or put mock signals in the database.") 
         return EnvironmentState(uv=signal.uv, temperature=signal.temperature, soil_moisture=signal.soil_moisture)
 
     def update_engagement(self, event: str, engagement: int) -> int:

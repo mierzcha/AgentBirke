@@ -104,7 +104,7 @@ def create_whisper_client() -> WhisperClient:
 
 def render_led_ring(leds: list[tuple[int, int, int]], size: int = 300) -> None:
     """Render a static 24-LED ring."""
-    if len(leds) != 24: #TODO get from led.json
+    if len(leds) != 24:
         raise ValueError(f"Expected 24 LEDs, got {len(leds)}.")
 
     center = size / 2
