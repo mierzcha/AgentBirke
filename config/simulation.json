@@ -2,16 +2,16 @@
     "uv": {
         "min": 0,
         "max": 15,
-        "default": 3
+        "default": 0
     },
     "temperature": {
         "min": -20,
         "max": 45,
-        "default": 20
+        "default": 0
     },
     "soil_moisture": {
         "min": 0,
         "max": 100,
-        "default": 70
+        "default": 0
     }
 }
