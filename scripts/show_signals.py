@@ -6,7 +6,7 @@ DATABASE_PATH = Path("data/database/signals.db")
 connection = sqlite3.connect(DATABASE_PATH)
 rows = connection.execute(
     """
-    SELECT id, uv, temperature, soil_moisture, state, time
+    SELECT id, uv, temperature, soil_moisture, time
     FROM signals
     ORDER BY id DESC
     """
@@ -22,6 +22,5 @@ for row in rows:
         f"UV: {row[1]} | "
         f"Temperatur: {row[2]} °C | "
         f"Bodenfeuchtigkeit: {row[3]} % | "
-        f"State: {row[4]} | "
-        f"Time: {row[5]}"
+        f"Time: {row[4]}"
     )

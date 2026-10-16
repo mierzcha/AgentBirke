@@ -13,12 +13,11 @@ class SignalRepository:
                 uv,
                 temperature,
                 soil_moisture,
-                state,
                 time
             )
-            VALUES (?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?)
             """,
-            (signal.uv, signal.temperature, signal.soil_moisture, signal.state, signal.time)
+            (signal.uv, signal.temperature, signal.soil_moisture, signal.time)
         )
         connection.commit()
         connection.close()
@@ -28,7 +27,7 @@ class SignalRepository:
         connection = get_connection()
         row = connection.execute(
             """
-            SELECT uv, temperature, soil_moisture, state, time
+            SELECT uv, temperature, soil_moisture, time
             FROM signals
             ORDER BY id DESC
             LIMIT 1
@@ -38,14 +37,14 @@ class SignalRepository:
         if row is None:
             return None
             
-        return Signal(uv=row[0], temperature=row[1], soil_moisture=row[2], state=row[3], time=datetime.fromisoformat(row[4]))
+        return Signal(uv=row[0], temperature=row[1], soil_moisture=row[2], time=datetime.fromisoformat(row[3]))
 
     def get_recent(self, limit: int = 10) -> list[Signal]:
         """Return the most recently stored signals."""
         connection = get_connection()
         rows = connection.execute(
             """
-            SELECT uv, temperature, soil_moisture, state, time
+            SELECT uv, temperature, soil_moisture, time
             FROM signals
             ORDER BY id DESC
             LIMIT ?
@@ -55,6 +54,6 @@ class SignalRepository:
         connection.close()
 
         return [
-            Signal(uv=row[0], temperature=row[1], soil_moisture=row[2], state=row[3], time=datetime.fromisoformat(row[4]))
+            Signal(uv=row[0], temperature=row[1], soil_moisture=row[2], time=datetime.fromisoformat(row[3]))
             for row in rows
         ]

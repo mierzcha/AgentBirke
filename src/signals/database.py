@@ -18,7 +18,6 @@ def init_database():
 		        uv INTEGER,
 		        temperature INTEGER,
 		        soil_moisture INTEGER,
-		        state TEXT,
 		        time DATETIME
 		    )
 		""")

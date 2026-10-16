@@ -22,6 +22,7 @@ def read_latest_Values(repository: SignalRepository) -> tuple[float, float, floa
 
 with open(CONFIG_PATH, "r", encoding="utf-8") as file:
     simulation_config = json.load(file)
+    
 # Page configuration
 st.set_page_config(page_title="Agent Birke – Umweltsimulation",page_icon="🌳")
 # Create simulation components
@@ -30,22 +31,26 @@ simulator = EnvironmentSimulator(repository)
 # Page title
 st.title("🌳 Agent Birke")
 st.header("Umweltsimulation")
+
 # Read configuration
 uv_config = simulation_config["uv"]
 temperature_config = simulation_config["temperature"]
 soil_moisture_config = simulation_config["soil_moisture"]
 uv_value, temperature_value, soil_moisture_value = read_latest_Values(repository)
+
 # Environmental value sliders
 uv = st.slider("UV-Index",min_value=uv_config["min"],max_value=uv_config["max"],value=uv_value)
 temperature = st.slider("Temperatur (°C)",min_value=temperature_config["min"],max_value=temperature_config["max"],value=temperature_value)
 soil_moisture = st.slider("Bodenfeuchtigkeit (%)",min_value=soil_moisture_config["min"],max_value=soil_moisture_config["max"],value=soil_moisture_value)
+
 # Save button
 if st.button("Absenden"):
     simulator.set_uv(uv)
     simulator.set_temperature(temperature)
     simulator.set_soil_moisture(soil_moisture)
-    simulator.save_state("test")
+    simulator.save_state()
     st.success("Zustand gespeichert.")
+    
 # Current values
 st.subheader("Aktuelle Werte") 
 col1, col2 = st.columns(2)

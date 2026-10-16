@@ -28,13 +28,12 @@ class EnvironmentSimulator:
         """Set the simulated soil moisture."""
         self.state.soil_moisture = value
 
-    def save_state(self, dialog_state: str = "unknown"):
+    def save_state(self):
         """Save the current environment state to the Signalspeicher."""
         signal = Signal(
             uv=self.state.uv,
             temperature=self.state.temperature,
             soil_moisture=self.state.soil_moisture,
-            state=dialog_state,
-            time=datetime.now(),
+            time=datetime.now()
         )
         self.repository.save(signal)

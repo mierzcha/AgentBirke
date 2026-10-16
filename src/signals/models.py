@@ -7,5 +7,4 @@ class Signal:
     uv: int
     temperature: int
     soil_moisture: int
-    state: str
     time: datetime
