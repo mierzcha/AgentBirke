@@ -35,18 +35,15 @@ class PromptBuilder:
         for value_range in engagement_config ["ranges"]:
             if (value_range["min"] <= engagement<= value_range["max"]):
                 return value_range["description"]
-
         return ""
 
     def _build_conversation(self,dialog_history: list[dict[str, str]]) -> str:
         """Build the conversation history from the dialogue messages."""
         if not dialog_history:
             return self.prompts["history_empty"]
-
         messages = []
         for message in dialog_history:
-            messages.append(self.prompts["history_message"]
-                .format(speaker=message["speaker"], text=message["text"]))
+            messages.append(self.prompts["history_message"].format(speaker=message["speaker"], text=message["text"]))
         return "\n".join(messages)
 
     def _get_task_description(self,dialog_state: str,) -> str:
@@ -62,9 +59,7 @@ class PromptBuilder:
         task_description = self._get_task_description(context.dialog_state.value)
         environment_template = self.prompts["environment_template"].format(context=context)
         input_label = self.prompts["input_label"].format(user_input=user_input)
-        role= self.prompts["role"].format(
-            agent_name=self.prompts["agent_name"]
-        )
+        role= self.prompts["role"].format(agent_name=self.prompts["agent_name"])
         prompt = self.prompts["layout"].format(
             agent_name=self.prompts["agent_name"],
             role=role,
