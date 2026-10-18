@@ -5,6 +5,10 @@
             "touch": {
                 "enabled": true,
                 "file": "touch.csv"
+            },
+            "response": {
+                "enabled": true,
+                "file": "response.csv"
             }
         }
     }

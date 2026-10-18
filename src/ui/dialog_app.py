@@ -1,3 +1,5 @@
+import os
+import requests
 import time
 import streamlit as st
 import wave #can read wav file's meta data, such as the duration of the audio track
@@ -14,11 +16,52 @@ from src.ui.dialog_components import (
     create_prompt_builder, create_open_webui_client, create_logging_config, create_dialogue_logger,
     create_piper_client, create_whisper_client
 )
+
 # How long does the dialogue history show, after goodbye is initiated
 DIALOG_HISTORY_DISPLAY_TIME = 5 
 st.set_page_config(page_title="Agent Birke - Dialog", page_icon="🌳")
 st.title("🌳 Agent Birke")
 st.header("Dialogsystem")
+
+
+# healthcheck and warm up llm
+open_webui_url = os.getenv("OPENWEBUI_URL", "").strip()
+open_webui_model = os.getenv("OPENWEBUI_MODEL", "").strip()
+open_webui_api_key = os.getenv("OPENWEBUI_API_KEY", "")
+
+@st.cache_data(ttl=300, show_spinner=False) # Caching verhindert Check bei jedem rerun
+def check_and_warm_up_open_webui(base_url: str, model: str, api_key: str) -> tuple[bool, str]:
+    """Check Open WebUI and warm up the configured LLM once."""
+    base_url = base_url.rstrip("/")
+    headers = {"Content-Type": "application/json"}
+    if api_key:
+        headers["Authorization"] = f"Bearer {api_key}"
+    # Check whether Open WebUI is reachable
+    try:
+        response = requests.get(f"{base_url}/health", timeout=5)
+        response.raise_for_status()
+    except requests.RequestException as error:
+        return False, f"Open WebUI nicht erreichbar: {error}"
+    # Send short request to load the model
+    try:
+        response = requests.post(f"{base_url}/api/chat/completions", headers=headers,
+            json={"model": model,"messages": [{"role": "user", "content": "Antworte nur mit OK."}], "stream": False},
+            timeout=120)
+        response.raise_for_status()
+    except requests.RequestException as error:
+        return False, f"LLM-Vorwärmen fehlgeschlagen: {error}"
+    return True, "Open WebUI erreichbar; LLM-Anfrage erfolgreich."
+
+if not open_webui_url or not open_webui_model:
+    st.warning("Open WebUI: URL oder Modell-ID ist nicht konfiguriert.")
+else:
+    with st.spinner("Open WebUI wird geprüft und das LLM vorgewärmt..."):
+        connection_ok, status_message = check_and_warm_up_open_webui(base_url=open_webui_url, model=open_webui_model, api_key=open_webui_api_key)
+    if connection_ok:
+        st.success(status_message)
+    else:
+        st.warning(status_message)
+
 # Initialize session state and components
 hci_config = create_hci_config()
 initialize_session_state(hci_config)
@@ -78,6 +121,10 @@ def process_input(user_input: str) -> None:
     if state_machine.state == DialogState.GREETING:
         state_machine.handle_event("speech")
     answer = generate_agent_response(user_input)
+    # LED Effekt bei response
+    # this is how the dispatcher would be called. Right now this can produce a Mock-Output on the console.
+    # dispatcher.dispatch("led", "play_effect", effect_name="response")
+    st.session_state.show_response_animation = True
     add_to_history("Nutzer", user_input)
     add_to_history("Birke", answer)
     st.rerun()
@@ -142,10 +189,8 @@ def show_touch_control() -> None:
         if st.button("Birke berühren"):
             state_machine.handle_event("touch")
             # LED Effekt bei touch 
-            
             # this is how the dispatcher would be called. Right now this can produce a Mock-Output on the console.
-            #dispatcher.dispatch("led", "play_effect", effect_name="touch")
-            
+            # dispatcher.dispatch("led", "play_effect", effect_name="touch")
             st.session_state.show_touch_animation = True # renders led effect on a mock led ring in the ui
             st.session_state.goodbye_done = False
             st.session_state.history_clear_at = None
@@ -185,6 +230,10 @@ def handle_greeting() -> None:
     """Handle the greeting state."""
     if st.session_state.last_answer is None:
         answer = generate_agent_response("")
+        # LED Effekt bei response
+        # this is how the dispatcher would be called. Right now this can produce a Mock-Output on the console.
+        # dispatcher.dispatch("led", "play_effect", effect_name="response")
+        st.session_state.show_response_animation = True
         add_to_history("Birke", answer)
         st.rerun()
     st.write("Was möchtest du der Birke sagen?")
@@ -201,6 +250,10 @@ def handle_goodbye() -> None:
     st.subheader("Verabschiedung")
     if not st.session_state.goodbye_done:
         answer = generate_agent_response("")
+        # LED Effekt bei response
+        # this is how the dispatcher would be called. Right now this can produce a Mock-Output on the console.
+        # dispatcher.dispatch("led", "play_effect", effect_name="response")
+        st.session_state.show_response_animation = True
         add_to_history("Birke", answer)
         # Logger receives dialog history and all snapshots with
         # runtimes, environment-, hci, and dialog-states
@@ -282,14 +335,20 @@ def show_developer_view() -> None:
             st.text(st.session_state.last_prompt)
 
 def show_leds() -> None:
-    """Display mock led ring in the ui"""
+    """Display mock LED ring in the UI."""
     if st.session_state.show_touch_animation:
         touch_effect = led_controller.load_effect("touch")
         render_led_animation(touch_effect.frames)
         st.session_state.show_touch_animation = False
+
+    elif st.session_state.show_response_animation:
+        response_effect = led_controller.load_effect("response")
+        render_led_animation(response_effect.frames)
+        st.session_state.show_response_animation = False
+
     else:
-        default_leds = [(0,0,0)] * led_controller.led_count
-        render_led_ring(default_leds) 
+        default_leds = [(0, 0, 0)] * led_controller.led_count
+        render_led_ring(default_leds)
 
 # Display application
 show_audio_output()

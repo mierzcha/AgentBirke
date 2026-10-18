@@ -37,7 +37,8 @@ def initialize_session_state(hci_config: dict) -> None:
         "last_audio_path": None,
         "last_audio_id": None,
         "engagement": engagement_config["default"],
-        "show_touch_animation": False
+        "show_touch_animation": False,
+        "show_response_animation": False
     }
     for key, value in defaults.items():
         if key not in st.session_state:
@@ -104,7 +105,7 @@ def create_whisper_client() -> WhisperClient:
 
 def render_led_ring(leds: list[tuple[int, int, int]], size: int = 300) -> None:
     """Render a static 24-LED ring."""
-    if len(leds) != 24:
+    if len(leds) != 24: 
         raise ValueError(f"Expected 24 LEDs, got {len(leds)}.")
 
     center = size / 2
