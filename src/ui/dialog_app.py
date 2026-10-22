@@ -8,7 +8,7 @@ from src.dialog.states import DialogState
 from src.dialog.service import DialogService
 from src.dialog.logger import InteractionSnapshot
 from src.actuation.event_dispatcher import EventDispatcher
-from src.actuation.led_actuator import LEDActuator
+from src.led.led_actuator import LEDActuator
 # Helper functions
 from src.ui.dialog_components import (
     initialize_session_state, create_hci_config, create_led_config, create_led_controller,
