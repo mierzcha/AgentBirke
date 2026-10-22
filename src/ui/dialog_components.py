@@ -5,7 +5,7 @@ import streamlit as st
 from src.dialog.state_machine import DialogStateMachine
 from src.dialog.prompt_builder import PromptBuilder
 from src.llm.open_webui_client import OpenWebUIClient
-from src.rules.evaluator import RuleEvaluator
+from src.environment.evaluator import RuleEvaluator
 from src.signals.repository import SignalRepository
 from src.dialog.logger import DialogueLogger
 from src.tts.piper_client import PiperClient

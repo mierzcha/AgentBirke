@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 import streamlit as st
 from src.signals.repository import SignalRepository
-from src.simulation.simulator import EnvironmentSimulator
+from src.environment.simulator import EnvironmentSimulator
 
 CONFIG_PATH = Path("config/simulation.json")
 

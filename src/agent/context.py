@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from src.dialog.states import DialogState
-from src.simulation.events import EnvironmentState
+from src.environment.events import EnvironmentState
 
 @dataclass
 class AgentContext:

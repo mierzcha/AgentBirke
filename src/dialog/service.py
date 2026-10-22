@@ -1,8 +1,8 @@
 import time
 from src.agent.context import create_context
-from src.rules.evaluator import RuleEvaluator
+from src.environment.evaluator import RuleEvaluator
 from src.signals.repository import SignalRepository
-from src.simulation.events import EnvironmentState
+from src.environment.events import EnvironmentState
 from src.dialog.prompt_builder import PromptBuilder
 from src.llm.open_webui_client import OpenWebUIClient
 from src.tts.piper_client import PiperClient

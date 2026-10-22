@@ -1,6 +1,6 @@
 from src.agent.context import AgentContext
 from src.dialog.states import DialogState
-from src.simulation.events import EnvironmentState
+from src.environment.events import EnvironmentState
 
 def main():
     environment = EnvironmentState(uv=5, temperature=30, soil_moisture=30)

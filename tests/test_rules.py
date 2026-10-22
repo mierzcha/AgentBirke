@@ -1,4 +1,4 @@
-from src.rules.evaluator import RuleEvaluator
+from src.environment.evaluator import RuleEvaluator
 
 def main():
     evaluator = RuleEvaluator()
