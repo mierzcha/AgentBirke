@@ -4,30 +4,24 @@ client = PiperClient(model_path="models/piper/de_DE-ramona-low.onnx")
 output_path = client.generate(text="Hallo, ich bin Agent Birke.",output_filename="test_piper_client_output.wav",)
 print(f"Audio 1 gespeichert unter: {output_path}")
 output_path = client.generate(
-    text="""Hallo zusammen,
-Leider gibt es immer noch ein paar Leute die auf Rechtschreibung scheißen. Wir haben heute einen ganz besonderen Lehrer, der diesen Leuten einen Crashkurs verpasst. Begrüßen wir ihn zusammen...
-Guten Morgen Herr Macklemore.
+    text="""
+Wortherkunft
+Das Wort Birke (von althochdeutsch bircha) ist auf einen Begriff im Indogermanischen zurückzuführen (bherHg̑o) und bedeutet in Anspielung auf die helle Rinde so viel wie „glänzend, schimmernd“ 
+(vgl. noch mittelhochdeutsch bereht, englisch bright, -brecht (als Namensbestandteil) „leuchtend“).
 
-Alright Okay 
-Alright Okay... Schluss mit dem Stuss
 
-Ich guck auf meinen Mac, Comments abgecheckt, und direkt den Unsinn aufgedeckt.
-Vieles schreibt man wie man's spricht, Unsinn aber nicht. Das muss groß und mit zwei „n". 
-Oh man - so geht das nicht. Egal ob Hater oder Fan. Hier schreibt jemand „ihr seid so dumm." 
-Man rend nicht auf der Straße rum. Aber rennt bitte mit „t" und zwei „n". Wer ist hier dumm? 
-Oh man - weg vom Mac. Ich zeig wie's geht, mit diesem Track, damit ihr seht, kein Geschwätz - hört alle her, 
-Rechtschreibung ist gar nicht schwer. Fangen wir an mit'n paar Tricks - das geht fix - und kost' nix. 
-Wer nämlich mit „h" schreibt ist dämlich. Genauso wie ziemlich und dämlich. Also seid nicht dämlich - lasst das „h" raus. 
-Und hört endlich auf zu schwätzen - auch du Klaus. 
-Trenne nie das "s" vom "t", denn das tut beiden weh. Bei seit gehts um die Zeit. Betonung auf „t" - Hände weg vom „d". 
-Dieser Hater fühlt sich gerade sehr durchtrieben. Doch ich muss ihm sagen, gar nicht wird gar nicht zusammen geschrieben. 
-Depp. Seid ihr auch in Englisch fit? He, she, it - „s" muss mit. He, she, it mit „s" is' fit. Sprecht jetzt alle mit: A B C D E F G H I K L M N O P Q R S T U V W. Das war das ganze ABC.
+Birken-Arten sind laubabwerfende, sommergrüne Bäume oder Sträucher. Sie gehören zu den sehr schnell und hochwachsenden Gehölzen und können schon nach sechs Jahren Wuchshöhen von bis zu 7 Metern erreichen; 
+ausgewachsen können sie bis zu 30 Meter, in Einzelfällen sogar noch höher werden. Sie wachsen mit einzelnen oder oft auch mit mehreren Stämmen. Einzelexemplare können ein Alter von bis zu 160 Jahren erreichen.
 
-Äh ne, du hast das was vergessen, Meck
+Bei vielen Birken-Arten ist die Borke besonders auffällig, ihre Farbe reicht von fast Schwarz über Dunkel- und Hellbraun bis Weiß; sie ist anfangs glatt, später lösen sich dünne, oft papierartige Stücke ab, 
+schließlich reißt sie horizontal auf. Es sind oft deutliche, meist dunkle Lentizellen vorhanden, die sich manchmal horizontal vergrößern.
 
-Wie bitte? SETZEN 6!
+Das leichte und je nach Art weiche bis mehr oder weniger harte Holz ist fast weiß bis rötlich-braun mit feiner Maserung. Bei jungen Zweigen können Lang- und Kurztriebe unterschieden werden. 
+Die Zweige duften manchmal. Bei den Winterknospen überlappen sich mehrere glatte Schuppen.
 
-Macklemore lehrt euch Kommentare zu schreiben, denn so wie es ist, kann es leider nicht bleiben. Egal ob ein Fan oder übelster Hater, achte auf Rechtschreibung und mach' keine Fehler. 
+Die wechselständig, meist zweireihig, oft an Kurztrieben angeordneten Laubblätter sind in Blattstiel und -spreite gegliedert. Die je nach Art mit Längen von 0,5 bis 10 (selten bis 14) Zentimetern und 
+Breiten von 0,5 bis 8 Zentimetern eiförmigen bis deltaförmigen, elliptischen oder fast kreisförmigen Blattspreiten sind kahl bis unterschiedlich behaart, manchmal harzig-drüsig. Es liegt Fiedernervatur vor. 
+Die Blattränder sind je nach Art gesägt bis meist doppelt gesägt oder seltener bei den nordischen Zwergstrauch-Arten gewellt bis leicht rundlich gelappt. Die Nebenblätter fallen oft früh ab.
     """,
     output_filename="test_piper_client_output2.wav",
 )
