@@ -1,7 +1,7 @@
-# AgentBirke
+# AgentBirke 
 
-Version 1 (WIP)
-
+A prototype Software architecture for voice-based interaction with a birch tree.
+(2026)
 
 ## Create Virtual Environment
 
@@ -70,5 +70,6 @@ Open the Network URL.
 ## Run Tests
 
 ```bash
-PYTHONPATH=. python tests/\<test-name\>
+PYTHONPATH=. python tests/<test-name>
 ```
+
